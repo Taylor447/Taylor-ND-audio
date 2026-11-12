@@ -1,0 +1,34 @@
+[package]
+name = "tnd-engine"
+version = "0.1.0"
+edition = "2021"
+description = "Taylor ND Audio real-time system audio engine"
+license = "MIT"
+
+[[bin]]
+name = "tnd-engine"
+path = "src/main.rs"
+
+[lib]
+name = "tnd_engine"
+path = "src/lib.rs"
+
+[dependencies]
+cpal = "=0.18.2"
+crossbeam-channel = "=0.5.15"
+hound = "=3.5.1"
+rtrb = "=0.3.2"
+rubato = "=0.15.0"
+rustfft = "=6.4.1"
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.145"
+tungstenite = "=0.24.0"
+uuid = { version = "=1.18.1", features = ["v4"] }
+windows = { version = "=0.62.2", features = ["Win32_Foundation", "Win32_Media_Audio", "Win32_System_Com", "Win32_System_Threading", "Win32_UI_Shell_PropertiesSystem"] }
+
+[dev-dependencies]
+criterion = "=0.8.2"
+
+[[bench]]
+name = "dsp_blocks"
+harness = false

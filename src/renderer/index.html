@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self';">
+  <title>Taylor ND Audio · Power Your Sound</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="amber">
+  <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-eq" viewBox="0 0 24 24"><path d="M4 4v16M10 4v16M16 4v16M22 4v16M2 8h4m2 8h4m2-6h4m2 5h4"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Zm7 12 .9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/></symbol>
+    <symbol id="i-presets" viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm1 4h12M6 11h12M6 15h7"/></symbol>
+    <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 12h2l2-7 4 14 4-16 4 18 3-9h3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0-6v3m0 14v3m10-10h-3M5 12H2m17.1-7.1L17 7m-10 10-2.1 2.1m14.2 0L17 17M7 7 4.9 4.9"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6l-5 4H4Zm12-2a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+  </svg>
+
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <div class="window-shell">
+    <header class="topbar">
+      <div class="brand-lockup" aria-label="Taylor ND Audio">
+        <img src="../../assets/logo.svg" class="brand-mark" alt="">
+        <div class="brand-copy"><strong>TAYLOR ND</strong><span>AUDIO <i>·</i> POWER YOUR SOUND</span></div>
+        <div class="brand-divider"></div>
+        <div class="brand-room">Phòng tinh chỉnh âm thanh</div>
+      </div>
+      <div class="top-actions">
+        <button class="pill-button" id="topPresets"><span class="button-glyph">▤</span> Thư viện</button>
+        <button class="pill-button" id="openTest"><span class="button-glyph">◉</span> Kiểm tra</button>
+        <button class="pill-button theme-trigger" id="themeMenu"><span class="color-dot"></span> Themes</button>
+        <button class="pill-button mode-toggle" id="modeToggle"><span id="modeGlyph">☼</span> Chế độ sáng</button>
+      </div>
+      <div class="window-controls" aria-label="Điều khiển cửa sổ">
+        <button aria-label="Thu nhỏ" data-window-action="minimize">−</button>
+        <button aria-label="Phóng to" data-window-action="maximize" id="maximizeButton">□</button>
+        <button class="close-window" aria-label="Ẩn xuống khay hệ thống" data-window-action="close">×</button>
+      </div>
+    </header>
+
+    <section class="connection-strip hidden" id="connectionStrip" aria-live="polite">
+      <div class="connection-indicator"></div><div><strong id="connectionTitle">Đang kết nối</strong><span id="connectionMessage"></span></div>
+      <button class="button-outline hidden" id="adminRestart">Khởi động lại với quyền Administrator</button>
+      <button class="text-button hidden" id="checkAgain">Kiểm tra lại</button>
+    </section>
+
+    <section class="onboarding hidden" id="onboardingPanel">
+      <div class="onboarding-copy">
+        <div class="eyebrow"><span class="eyebrow-dot"></span> THIẾT LẬP LẦN ĐẦU</div>
+        <h1>Đưa âm thanh<br><em>đi xa hơn.</em></h1>
+        <p>Taylor ND Audio cần Equalizer APO để xử lý âm thanh trực tiếp trên Windows. Hãy hoàn tất vài bước dưới đây để bắt đầu.</p>
+        <button class="button-primary" id="onboardingCheck"><svg><use href="#i-check"/></svg> Kiểm tra lại</button>
+      </div>
+      <div class="setup-card glass-card">
+        <div class="setup-heading"><div class="setup-icon"><svg><use href="#i-volume"/></svg></div><div><span>YÊU CẦU</span><strong>Cài Equalizer APO</strong></div></div>
+        <ol class="setup-steps">
+          <li><span>01</span><div><strong>Tải và cài đặt</strong><p>Mở trang chính thức rồi chạy bộ cài Equalizer APO.</p><button class="inline-link" data-open-url="https://sourceforge.net/projects/equalizerapo/">Tải Equalizer APO ↗</button></div></li>
+          <li><span>02</span><div><strong>Chọn thiết bị phát</strong><p>Trong Configurator, tích loa hoặc tai nghe bạn muốn xử lý.</p></div></li>
+          <li><span>03</span><div><strong>Khởi động lại máy</strong><p>Áp dụng APO cho thiết bị sau khi Configurator yêu cầu.</p></div></li>
+          <li><span>04</span><div><strong>Tắt hiệu ứng trùng lặp</strong><p>Trong Windows, tắt Audio enhancements của Realtek/Dolby để tránh xung đột.</p></div></li>
+        </ol>
+        <div class="setup-note"><span>i</span> Taylor ND Audio sẽ tự nối vào Equalizer APO khi bạn kiểm tra lại.</div>
+      </div>
+    </section>
+
+    <main class="app-main" id="appMain">
+      <section class="page active" id="page-home" data-page="home">
+        <div class="hero-card glass-card">
+          <div class="hero-content">
+            <div class="eyebrow"><span class="eyebrow-dot"></span> PHÒNG ÂM THANH <b>·</b> TAYLOR ND</div>
+            <h1>Tinh chỉnh<br><em>Âm thanh</em></h1>
+            <p>Chào mừng bạn trở lại. Một không gian âm thanh được cân chỉnh theo cách bạn cảm nhận.</p>
+            <div class="hero-buttons"><button class="button-primary" id="startTuning">Bắt đầu tinh chỉnh <span>↗</span></button><button class="button-secondary" id="heroPresets">Xem preset</button></div>
+            <div class="hero-footnote"><span class="status-pulse"></span> <span id="heroStatus">Âm thanh đang ở trạng thái trung tính</span></div>
+          </div>
+          <div class="score-card">
+            <div class="score-rings"></div><div class="score-wave"><svg viewBox="0 0 430 160" preserveAspectRatio="none"><path d="M0 83 C30 83 25 76 45 76 S58 100 73 100 S88 42 103 42 S118 124 134 124 S148 61 165 61 S180 89 195 89 S210 32 225 32 S240 111 255 111 S270 70 285 70 S300 96 315 96 S330 53 345 53 S361 101 376 101 S395 74 430 74"/></svg></div>
+            <div class="score-top"><span>ĐIỂM CÂN BẰNG ÂM</span><span class="score-spark">✦</span></div>
+            <div class="score-number"><strong id="scoreValue">100</strong><span>/ 100</span></div>
+            <div class="score-label" id="scoreLabel">Cân bằng hoàn hảo</div>
+            <div class="score-meter"><span id="scoreMeter"></span></div>
+            <div class="score-foot"><span>Độ cân bằng <b id="scoreBalance">100%</b></span><span>Headroom <b id="scoreHeadroom">Tốt</b></span></div>
+          </div>
+          <div class="hero-orbit orbit-a"></div><div class="hero-orbit orbit-b"></div>
+        </div>
+        <button class="continue-banner" id="continueBanner"><span class="banner-icon">↗</span><span><small>GỢI Ý CHO BẠN</small><strong>Tiếp tục: hiệu chỉnh theo tai nghe của bạn</strong></span><b>→</b></button>
+        <div class="home-lower">
+          <div class="glass-card quick-card"><div class="section-heading"><div><span class="eyebrow">KHÔNG GIAN CỦA BẠN</span><h2>Điều chỉnh nhanh</h2></div><button class="subtle-link" data-go="effects">Tất cả hiệu ứng ↗</button></div>
+            <div class="quick-controls"><label class="quick-control"><span><i class="quick-icon bass">♫</i><b>Bass Boost</b></span><input id="quickBass" type="range" min="-12" max="12" step="1"><output id="quickBassValue">0 dB</output></label><label class="quick-control"><span><i class="quick-icon clarity">✧</i><b>Độ rõ giọng</b></span><input id="quickDialogue" type="range" min="-12" max="12" step="1"><output id="quickDialogueValue">0 dB</output></label><label class="quick-control"><span><i class="quick-icon width">◉</i><b>Âm trường</b></span><input id="quickWidth" type="range" min="-35" max="35" step="1"><output id="quickWidthValue">0%</output></label></div>
+          </div>
+          <div class="glass-card connection-card"><div class="connection-card-top"><div><span class="eyebrow">ENGINE ÂM THANH</span><h2>Equalizer APO</h2></div><span class="engine-badge" id="engineBadge"><i></i> Đang hoạt động</span></div><p>Hiệu ứng được áp dụng trực tiếp cho thiết bị phát Windows đã chọn.</p><div class="engine-file"><span>↳</span><code id="engineFile">taylor-nd-audio.txt</code><span class="live-label">LIVE</span></div></div>
+        </div>
+      </section>
+
+      <section class="page" id="page-equalizer" data-page="equalizer">
+        <div class="page-heading"><div><span class="eyebrow">TẠO CHẤT ÂM RIÊNG</span><h1>Equalizer <em>10 băng tần</em></h1><p>Định hình đường cong âm thanh theo sở thích của bạn.</p></div><div class="heading-actions"><button class="button-outline bypass-button" id="bypassToggle">Bypass A/B</button><button class="button-outline" id="resetEq">Đặt lại</button><button class="button-primary compact" id="eqPresetButton">Chọn preset</button></div></div>
+        <div class="glass-card equalizer-card"><div class="chart-head"><div><strong>ĐƯỜNG CONG ĐÁP ỨNG</strong><span>±12 dB · tần số logarithmic</span></div><div class="chart-legend"><i></i> Đường cong hiện tại</div></div><canvas id="eqCurve" height="220" aria-label="Đồ thị đáp ứng tần số"></canvas><div class="eq-sliders" id="eqSliders"></div><div class="eq-scale"><span>Âm trầm</span><span>Âm trung</span><span>Âm cao</span></div></div>
+      </section>
+
+      <section class="page" id="page-effects" data-page="effects">
+        <div class="page-heading"><div><span class="eyebrow">THÊM CHIỀU SÂU VÀ SẮC THÁI</span><h1>Hiệu ứng <em>âm thanh</em></h1><p>Tùy chỉnh từng lớp âm thanh và không gian nghe.</p></div><button class="button-outline" id="resetEffects">Đặt lại hiệu ứng</button></div>
+        <div class="effects-grid">
+          <article class="glass-card effect-card"><div class="effect-card-head"><div class="effect-icon bass">♫</div><div><h3>Bass Boost</h3><p>Tăng độ dày và lực cho dải trầm.</p></div><span class="effect-value" id="bassValue">0 dB</span></div><input id="bassSlider" type="range" min="-12" max="12" step="1"><div class="range-ends"><span>Ấm hơn</span><span>Mạnh hơn</span></div></article>
+          <article class="glass-card effect-card"><div class="effect-card-head"><div class="effect-icon clarity">✧</div><div><h3>Treble</h3><p>Thêm độ sáng và chi tiết cho âm cao.</p></div><span class="effect-value" id="trebleValue">0 dB</span></div><input id="trebleSlider" type="range" min="-12" max="12" step="1"><div class="range-ends"><span>Mềm</span><span>Sáng</span></div></article>
+          <article class="glass-card effect-card"><div class="effect-card-head"><div class="effect-icon dialogue">◖</div><div><h3>Dialogue Enhancer</h3><p>Làm rõ lời thoại và giọng hát.</p></div><span class="effect-value" id="dialogueValue">0 dB</span></div><input id="dialogueSlider" type="range" min="-12" max="12" step="1"><div class="range-ends"><span>Tự nhiên</span><span>Rõ hơn</span></div></article>
+          <article class="glass-card effect-card"><div class="effect-card-head"><div class="effect-icon width">◉</div><div><h3>Mở rộng âm trường</h3><p>Giá trị âm mở rộng stereo; giá trị dương thêm crossfeed cho tai nghe.</p></div><span class="effect-value" id="widthValue">0%</span></div><input id="widthSlider" type="range" min="-35" max="35" step="1"><div class="range-ends"><span>Rộng hơn</span><span>Crossfeed tai nghe</span></div></article>
+          <article class="glass-card effect-card"><div class="effect-card-head"><div class="effect-icon balance">⇆</div><div><h3>Cân bằng trái / phải</h3><p>Chỉnh mức nghe cho từng bên.</p></div><span class="effect-value" id="balanceValue">0</span></div><input id="balanceSlider" type="range" min="-100" max="100" step="1"><div class="range-ends"><span>Trái</span><span>Phải</span></div></article>
+          <article class="glass-card effect-card impulse-card"><div class="effect-card-head"><div class="effect-icon reverb">⌁</div><div><h3>Reverb / hiệu chỉnh tai nghe</h3><p>Nạp impulse response WAV để mô phỏng không gian.</p></div></div><div class="file-picker-row"><span id="impulseName">Chưa chọn file impulse</span><button class="button-outline small" id="chooseImpulse">Chọn WAV</button></div><label class="switch-row"><span>Bật convolution</span><input type="checkbox" id="reverbToggle"><i></i></label></article>
+          <article class="glass-card effect-card impulse-card"><div class="effect-card-head"><div class="effect-icon dynamics">◒</div><div><h3>Compressor / Limiter</h3><p id="compressorDescription">Dùng plugin VST2 tương thích với Equalizer APO.</p></div></div><div class="file-picker-row"><span id="vstName">Chưa chọn plugin</span><button class="button-outline small" id="chooseVst">Chọn DLL</button></div><label class="switch-row"><span>Bật compressor</span><input type="checkbox" id="compressorToggle"><i></i></label><p class="inline-warning hidden" id="vstWarning">Cần cài plugin VST compressor tương thích trước khi bật.</p></article>
+        </div>
+      </section>
+
+      <section class="page" id="page-presets" data-page="presets">
+        <div class="page-heading"><div><span class="eyebrow">MỘT CHẠM, MỘT KHÔNG GIAN MỚI</span><h1>Thư viện <em>preset</em></h1><p>Chọn chất âm theo nội dung bạn đang nghe.</p></div><div class="heading-actions"><button class="button-outline" id="importPresets">Nhập JSON</button><button class="button-primary compact" id="savePreset">＋ Lưu preset</button><input id="presetFileInput" class="hidden" type="file" accept="application/json,.json"></div></div>
+        <div class="preset-grid" id="presetGrid"></div>
+        <div class="preset-footer"><span><i class="status-pulse"></i> Preset đang dùng: <b id="currentPresetName">Tùy chỉnh</b></span><div><button class="text-button" id="renamePreset">Đổi tên</button><button class="text-button danger-text" id="deletePreset">Xóa preset</button><button class="text-button" id="exportPresets">Xuất JSON ↗</button></div></div>
+      </section>
+
+      <section class="page" id="page-analysis" data-page="analysis">
+        <div class="page-heading"><div><span class="eyebrow">NHÌN THẤY ÂM THANH ĐANG CHUYỂN ĐỘNG</span><h1>Phân tích <em>âm thanh</em></h1><p id="analysisDescription">Phổ, waveform và mức đỉnh từ loopback âm thanh hệ thống.</p></div><button class="button-primary compact" id="captureToggle">Bắt đầu phân tích</button></div>
+        <div class="analysis-meters"><div class="glass-card meter-card"><span>PEAK</span><strong id="peakMeter">−∞ <small>dBFS</small></strong><div class="meter-track"><i id="peakBar"></i></div></div><div class="glass-card meter-card"><span>RMS</span><strong id="rmsMeter">−∞ <small>dBFS</small></strong><div class="meter-track rms-track"><i id="rmsBar"></i></div></div><div class="glass-card capture-card"><span class="capture-dot" id="captureDot"></span><div><strong id="captureState">Chưa bắt đầu</strong><small>Chỉ vẽ phổ và đo mức, không phát lại âm thanh.</small></div></div></div>
+        <div class="analysis-grid"><article class="glass-card analysis-chart"><div class="chart-head"><div><strong>PHỔ TẦN SỐ</strong><span>FFT · 20 Hz — 20 kHz</span></div><span class="chart-live" id="analysisSourceLabel">● LOOPBACK</span></div><canvas id="spectrumCanvas" height="300"></canvas></article><article class="glass-card analysis-chart"><div class="chart-head"><div><strong>WAVEFORM</strong><span>Tín hiệu theo thời gian</span></div><span class="chart-live">● REALTIME</span></div><canvas id="waveCanvas" height="300"></canvas></article></div>
+        <div class="loopback-note" id="analysisNote"><span>i</span> Windows sẽ cấp quyền loopback khi bạn bắt đầu. Nếu không thấy tín hiệu, hãy phát âm thanh và kiểm tra lại thiết bị đã chọn trong Equalizer APO.</div>
+      </section>
+
+      <section class="page" id="page-settings" data-page="settings">
+        <div class="page-heading"><div><span class="eyebrow">CÁ NHÂN HÓA PHÒNG ÂM THANH</span><h1>Cài đặt <em>ứng dụng</em></h1><p>Giao diện, cách khởi chạy và phím tắt nhanh.</p></div></div>
+        <div class="settings-layout">
+          <div class="settings-column">
+            <article class="glass-card settings-card"><div class="settings-card-head"><div><span class="eyebrow">CHẾ ĐỘ XỬ LÝ</span><h2>Chọn engine âm thanh</h2></div></div><label class="field-label" for="engineModeSetting">Engine DSP</label><select class="device-select" id="engineModeSetting"><option value="apo">Equalizer APO</option><option value="taylor">Taylor Engine</option></select><p class="settings-hint">Taylor Engine nhận âm thanh qua VB-CABLE rồi phát ra thiết bị thật. Equalizer APO tiếp tục dùng cấu hình hiện có.</p></article>
+            <article class="glass-card settings-card hidden" id="taylorDeviceCard"><div class="settings-card-head"><div><span class="eyebrow">THIẾT BỊ ÂM THANH</span><h2>Taylor Engine</h2></div><span class="engine-state-pill" id="engineRunState">Đã dừng</span></div>
+              <label class="field-label" for="engineInputSelect">Đầu vào · Recording</label><select class="device-select" id="engineInputSelect"></select>
+              <label class="field-label" for="engineOutputSelect">Đầu ra · Playback</label><select class="device-select" id="engineOutputSelect"></select>
+              <label class="field-label" for="engineBufferSelect">Buffer</label><select class="device-select compact-select" id="engineBufferSelect"><option value="5">5 ms · độ trễ thấp</option><option value="10">10 ms · cân bằng</option><option value="20">20 ms · ổn định hơn</option></select>
+              <div class="device-actions"><button class="button-outline" id="refreshDevices">Làm mới thiết bị</button><button class="button-outline" id="openSoundSettings">Mở cài đặt âm thanh</button></div>
+              <div class="settings-meta"><span>Độ trễ ước tính</span><b id="engineLatency">— ms</b></div><div class="settings-meta"><span>Xrun (thiếu/thừa buffer)</span><b id="engineXruns">0</b></div>
+              <div class="device-actions"><button class="button-primary compact" id="engineStart">Bắt đầu engine</button><button class="button-outline" id="engineStop">Dừng</button></div>
+              <p class="settings-feedback" id="deviceFeedback"></p>
+              <div class="cable-onboarding" id="cableOnboarding"><strong id="cableTitle">Đang kiểm tra VB-CABLE…</strong><p id="cableMessage">VB-CABLE Input là thiết bị phát; CABLE Output là thiết bị ghi. Chọn CABLE Output ở đầu vào và loa/tai nghe thật ở đầu ra.</p><button class="button-outline small" id="checkCable">Kiểm tra lại cáp</button><button class="inline-link" data-open-url="https://vb-audio.com/Cable/">Tải VB-CABLE ↗</button><small>VB-CABLE là donationware của VB-Audio; Taylor ND Audio không đóng gói driver. Cài bằng quyền Administrator rồi khởi động lại Windows.</small></div>
+              <p class="settings-hint">Đặt “CABLE Input” làm thiết bị phát mặc định trong Windows. Không chọn CABLE Input làm đầu ra của engine vì sẽ tạo vòng lặp.</p>
+            </article>
+            <article class="glass-card settings-card"><div class="settings-card-head"><div><span class="eyebrow">GIAO DIỆN</span><h2>Màu sắc không gian</h2></div></div><div class="theme-grid"><button class="theme-option selected" data-theme-choice="amber"><i class="swatch amber-swatch"></i><span>Amber</span></button><button class="theme-option" data-theme-choice="violet"><i class="swatch violet-swatch"></i><span>Violet</span></button><button class="theme-option" data-theme-choice="ocean"><i class="swatch ocean-swatch"></i><span>Ocean</span></button><button class="theme-option" data-theme-choice="forest"><i class="swatch forest-swatch"></i><span>Forest</span></button><button class="theme-option" data-theme-choice="rose"><i class="swatch rose-swatch"></i><span>Rose</span></button></div><label class="switch-row setting-switch"><span><b>Chế độ sáng</b><small>Giao diện sáng dịu mắt</small></span><input id="lightModeSetting" type="checkbox"><i></i></label></article>
+            <article class="glass-card settings-card"><div class="settings-card-head"><div><span class="eyebrow">KHỞI ĐỘNG</span><h2>Truy cập nhanh</h2></div></div><label class="switch-row setting-switch"><span><b>Khởi động cùng Windows</b><small>Mở Taylor ND Audio khi đăng nhập</small></span><input id="autostartSetting" type="checkbox"><i></i></label><div class="hotkey-row"><div><b>Bật / tắt xử lý âm thanh</b><small>Phím tắt toàn cục để chuyển bypass</small></div><input id="hotkeyInput" value="Ctrl+Alt+F12" spellcheck="false"><button class="button-outline small" id="saveHotkey">Lưu</button></div><div class="automation-block"><label class="switch-row setting-switch"><span><b>Tự đổi preset theo ứng dụng</b><small>Dùng ứng dụng đang ở phía trước màn hình</small></span><input id="autoPresetSetting" type="checkbox"><i></i></label><div class="automation-editor"><input id="autoProcessName" placeholder="Tên tiến trình, ví dụ: chrome" spellcheck="false"><select id="autoPresetSelect" aria-label="Preset tự động"></select><button class="button-outline small" id="addAutoRule">Thêm</button></div><div id="automationRules" class="automation-rules"></div><p class="automation-note">Nhập tên tiến trình không cần “.exe”. Ứng dụng chỉ được kiểm tra khi bật tùy chọn này.</p></div><p class="settings-feedback" id="settingsFeedback"></p></article>
+          </div>
+          <div class="settings-column"><article class="glass-card settings-card engine-settings"><span class="eyebrow">TRẠNG THÁI HỆ THỐNG</span><h2 id="settingsEngineTitle">Equalizer APO</h2><p id="settingsEngineStatus">Đang kiểm tra kết nối…</p><div class="settings-path"><span>File hiệu ứng</span><code id="settingsEngineFile">taylor-nd-audio.txt</code></div><button class="button-outline" id="settingsCheckAgain">Kiểm tra lại</button><button class="button-outline admin-button hidden" id="settingsAdminRestart">Khởi động lại với quyền Administrator</button><div class="settings-hairline"></div><div class="settings-meta"><span>Phiên bản ứng dụng</span><b>1.0.0</b></div><div class="settings-meta"><span>Engine DSP</span><b id="settingsEngineName">Equalizer APO</b></div></article><article class="glass-card note-card"><div class="note-mark">✦</div><h3>Power Your Sound</h3><p id="engineModeNote">Equalizer APO áp dụng hiệu ứng trên các thiết bị đã được chọn trong Configurator.</p><button class="inline-link" id="apoDocsLink" data-open-url="https://sourceforge.net/p/equalizerapo/wiki/Configuration%20reference/">Tài liệu cấu hình ↗</button></article></div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Điều hướng chính">
+      <button class="nav-item active" data-go="home"><svg><use href="#i-home"/></svg><span>Trang chủ</span></button>
+      <button class="nav-item" data-go="equalizer"><svg><use href="#i-eq"/></svg><span>Equalizer</span></button>
+      <button class="nav-item" data-go="effects"><svg><use href="#i-spark"/></svg><span>Hiệu ứng</span></button>
+      <button class="nav-item" data-go="presets"><svg><use href="#i-presets"/></svg><span>Preset</span></button>
+      <button class="nav-item" data-go="analysis"><svg><use href="#i-wave"/></svg><span>Phân tích</span></button>
+      <button class="nav-item" data-go="settings"><svg><use href="#i-settings"/></svg><span>Cài đặt</span></button>
+    </nav>
+  </div>
+
+  <dialog id="testDialog" class="test-dialog">
+    <div class="dialog-top"><div><span class="eyebrow">KIỂM TRA THIẾT BỊ PHÁT</span><h2>Tín hiệu thử âm</h2></div><button class="dialog-close" id="closeTest" aria-label="Đóng">×</button></div>
+    <p>Phát thử trực tiếp để kiểm tra loa hoặc tai nghe. Hãy bắt đầu ở âm lượng thấp.</p>
+    <label class="test-level">Tần số tone <output id="toneFrequencyValue">440 Hz</output><input id="toneFrequency" type="range" min="100" max="1200" step="10" value="440"></label>
+    <div class="test-buttons"><button class="button-primary" id="playTone">Phát tone</button><button class="button-secondary" id="playPink">Nhiễu hồng</button><button class="button-outline hidden" id="stopSound">Dừng</button></div>
+    <div class="dialog-warning"><span>!</span> Kiểm tra tín hiệu có thể phát âm thanh khá lớn. Giảm âm lượng trước khi thử.</div>
+  </dialog>
+  <script src="renderer.js"></script>
+</body>
+</html>

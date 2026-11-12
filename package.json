@@ -1,0 +1,65 @@
+{
+  "name": "taylor-nd-audio",
+  "productName": "Taylor ND Audio",
+  "version": "1.0.0",
+  "description": "Bộ tinh chỉnh âm thanh toàn hệ thống Taylor ND Audio.",
+  "main": "src/main.js",
+  "author": "Taylor ND Audio",
+  "license": "MIT",
+  "scripts": {
+    "prestart": "npm run build:engine",
+    "start": "electron .",
+    "build:engine": "cargo build --release --manifest-path engine/Cargo.toml",
+    "bench:engine": "cargo bench --manifest-path engine/Cargo.toml",
+    "dist": "npm run build:engine && electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "45.3.1",
+    "electron-builder": "26.18.1"
+  },
+  "dependencies": {
+    "ws": "8.18.3"
+  },
+  "build": {
+    "appId": "com.taylorn.audio",
+    "productName": "Taylor ND Audio",
+    "asar": true,
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "engine/target/release/tnd-engine.exe",
+        "to": "engine/tnd-engine.exe"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/taylor-nd-audio.ico",
+      "artifactName": "Taylor-ND-Audio-Setup-${version}.${ext}",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Taylor ND Audio",
+      "installerIcon": "assets/taylor-nd-audio.ico",
+      "uninstallerIcon": "assets/taylor-nd-audio.ico",
+      "perMachine": false,
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}
