@@ -171,20 +171,23 @@ impl Dsp {
         engine
     }
 
-    /// Lập hệ số mới ngoài callback; tiến dần tới hệ số đích trong khoảng 20 ms.
+    /// Cập nhật profile không tạo Vec tạm sau khởi tạo; việc tính hệ số vẫn theo luồng gọi.
     pub fn set_profile(&mut self, profile: EngineProfile) {
-        let eq: Vec<(FilterKind, f64, f64, f64)> = EQ_FREQUENCIES.iter().enumerate()
-            .map(|(i, f)| (FilterKind::Peak, *f, profile.eq[i].clamp(-12.0, 12.0) as f64, 1.41)).collect();
-        let mut target = eq;
-        target.push((FilterKind::LowShelf, 100.0, profile.effects.bass.clamp(-12.0, 12.0) as f64, std::f64::consts::FRAC_1_SQRT_2));
-        target.push((FilterKind::HighShelf, 8_000.0, profile.effects.treble.clamp(-12.0, 12.0) as f64, std::f64::consts::FRAC_1_SQRT_2));
-        target.push((FilterKind::Peak, 2_500.0, profile.effects.dialogue.clamp(-12.0, 12.0) as f64, 1.0));
         if self.filters.is_empty() {
-            self.filters = target.iter().map(|(kind, frequency, gain, q)| Biquad::new(*kind, *frequency, *gain, *q, self.sample_rate)).collect();
-        } else {
-            for (filter, (kind, frequency, gain, q)) in self.filters.iter_mut().zip(target.iter()) {
-                filter.set_target(*kind, *frequency, *gain, *q, self.sample_rate);
+            // Dự phòng chỉ dùng lúc khởi tạo; capacity 13 đã được đặt trong new().
+            for index in 0..10 {
+                self.filters.push(Biquad::new(FilterKind::Peak, EQ_FREQUENCIES[index], profile.eq[index].clamp(-12.0, 12.0) as f64, 1.41, self.sample_rate));
             }
+            self.filters.push(Biquad::new(FilterKind::LowShelf, 100.0, profile.effects.bass.clamp(-12.0, 12.0) as f64, std::f64::consts::FRAC_1_SQRT_2, self.sample_rate));
+            self.filters.push(Biquad::new(FilterKind::HighShelf, 8_000.0, profile.effects.treble.clamp(-12.0, 12.0) as f64, std::f64::consts::FRAC_1_SQRT_2, self.sample_rate));
+            self.filters.push(Biquad::new(FilterKind::Peak, 2_500.0, profile.effects.dialogue.clamp(-12.0, 12.0) as f64, 1.0, self.sample_rate));
+        } else {
+            for index in 0..10 {
+                self.filters[index].set_target(FilterKind::Peak, EQ_FREQUENCIES[index], profile.eq[index].clamp(-12.0, 12.0) as f64, 1.41, self.sample_rate);
+            }
+            self.filters[10].set_target(FilterKind::LowShelf, 100.0, profile.effects.bass.clamp(-12.0, 12.0) as f64, std::f64::consts::FRAC_1_SQRT_2, self.sample_rate);
+            self.filters[11].set_target(FilterKind::HighShelf, 8_000.0, profile.effects.treble.clamp(-12.0, 12.0) as f64, std::f64::consts::FRAC_1_SQRT_2, self.sample_rate);
+            self.filters[12].set_target(FilterKind::Peak, 2_500.0, profile.effects.dialogue.clamp(-12.0, 12.0) as f64, 1.0, self.sample_rate);
         }
         // Dự trữ headroom theo tổng tăng dương bảo thủ; master gain luôn bị chặn ở +6 dB.
         let positive = profile.eq.iter().map(|g| g.max(0.0)).sum::<f32>()
@@ -390,6 +393,16 @@ impl Dsp {
         waveform.extend_from_slice(&self.waveform[..self.waveform_write]);
         Telemetry { peak_l: self.peak_l, peak_r: self.peak_r, rms_l: self.rms_l, rms_r: self.rms_r,
             spectrum: self.spectrum.clone(), waveform, sample_rate: self.sample_rate as u32 }
+    }
+
+    /// Sao chép telemetry vào vùng caller đã cấp sẵn; không tạo Vec mới.
+    pub fn copy_telemetry_into(&self, spectrum: &mut [f32; 64], waveform: &mut [f32; 1024]) -> (f32, f32, f32, f32, u32) {
+        spectrum.copy_from_slice(&self.spectrum);
+        let split = self.waveform_write;
+        let first = self.waveform.len() - split;
+        waveform[..first].copy_from_slice(&self.waveform[split..]);
+        waveform[first..].copy_from_slice(&self.waveform[..split]);
+        (self.peak_l, self.peak_r, self.rms_l, self.rms_r, self.sample_rate as u32)
     }
 }
 

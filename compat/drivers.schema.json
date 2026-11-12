@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://taylorn.audio/schema/compat-drivers-v1.json",
+  "title": "Taylor ND Audio compatibility rules",
+  "type": "object",
+  "required": ["schemaVersion", "rules", "fallback"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "updatedAt": { "type": "string", "format": "date" },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "priority", "match", "recommendation", "status", "reason", "knownIssues"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "priority": { "type": "integer", "minimum": 0 },
+          "match": { "type": "object", "properties": { "nameContains": { "type": "array", "items": { "type": "string" } }, "vendorContains": { "type": "array", "items": { "type": "string" } }, "hardwareIdContains": { "type": "array", "items": { "type": "string" } }, "bus": { "type": "string" } }, "additionalProperties": false },
+          "recommendation": { "enum": ["equalizer-apo", "taylor-engine", "none"] },
+          "status": { "enum": ["supported", "supported-with-routing", "conditional", "conflict", "unknown"] },
+          "reason": { "type": "string" },
+          "knownIssues": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "fallback": { "type": "object", "required": ["recommendation", "status", "reason"] }
+  },
+  "additionalProperties": false
+}

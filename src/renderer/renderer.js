@@ -35,6 +35,7 @@ let engineDevices = [];
 let engineState = { running: false, sampleRate: 0, latencyMs: 0, xruns: 0 };
 let engineTelemetry = null;
 let engineAnalysisLive = false;
+let compatibilityReport = null;
 
 function readStored(key, fallback) {
   try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
@@ -94,7 +95,7 @@ function syncEffectControls() {
   document.getElementById('compressorToggle').checked = Boolean(effects.compressorEnabled);
   document.getElementById('impulseName').textContent = effects.impulsePath ? effects.impulsePath.split(/[\\/]/).pop() : 'Chưa chọn file impulse';
   document.getElementById('vstName').textContent = effects.vstPluginPath ? effects.vstPluginPath.split(/[\\/]/).pop() : 'Chưa chọn plugin';
-  document.getElementById('vstWarning').classList.toggle('hidden', appSettings.engineMode === 'taylor' || Boolean(effects.vstPluginPath) || !effects.compressorEnabled);
+  document.getElementById('vstWarning').classList.toggle('hidden', ['taylor', 'taylor-apo'].includes(appSettings.engineMode) || Boolean(effects.vstPluginPath) || !effects.compressorEnabled);
 }
 
 function syncEqControls() {
@@ -124,6 +125,7 @@ function scheduleApply() {
   debounceTimer = setTimeout(async () => {
     const result = await window.audioApp.applyProfile(clone(profile));
     if (result?.status) renderIntegration(result.status);
+    if (result && !result.ok && result.message) document.getElementById('settingsFeedback').textContent = result.message;
   }, 100);
 }
 
@@ -396,35 +398,41 @@ function renderIntegration(next) {
   document.getElementById('engineBadge').classList.toggle('offline', !connected);
   document.getElementById('engineBadge').innerHTML = `<i></i> ${connected ? 'Đang hoạt động' : 'Chưa kết nối'}`;
   document.getElementById('settingsEngineStatus').textContent = integration.message || (connected ? 'Đang hoạt động.' : 'Chưa kết nối.');
-  document.getElementById('heroStatus').textContent = connected ? 'Engine âm thanh đã sẵn sàng' : `${appSettings.engineMode === 'taylor' ? 'Taylor Engine' : 'Equalizer APO'} chưa được kết nối`;
+  const modeName = appSettings.engineMode === 'taylor' ? 'Taylor Engine' : appSettings.engineMode === 'taylor-apo' ? 'Taylor APO' : 'Equalizer APO';
+  document.getElementById('heroStatus').textContent = connected ? 'Engine âm thanh đã sẵn sàng' : `${modeName} chưa được kết nối`;
   renderEngineMode();
 }
 
 function renderEngineMode() {
   const taylor = appSettings.engineMode === 'taylor';
-  document.getElementById('engineModeSetting').value = taylor ? 'taylor' : 'apo';
+  const taylorApo = appSettings.engineMode === 'taylor-apo';
+  const telemetryMode = taylor || taylorApo;
+  document.getElementById('engineModeSetting').value = appSettings.engineMode;
   document.getElementById('taylorDeviceCard').classList.toggle('hidden', !taylor);
-  document.getElementById('settingsEngineTitle').textContent = taylor ? 'Taylor Engine' : 'Equalizer APO';
-  document.getElementById('settingsEngineName').textContent = taylor ? 'Taylor Engine' : 'Equalizer APO';
-  document.getElementById('settingsEngineFile').parentElement.classList.toggle('hidden', taylor);
-  document.getElementById('settingsAdminRestart').classList.toggle('hidden', taylor || integration.state !== 'needs-admin');
-  document.getElementById('apoDocsLink').classList.toggle('hidden', taylor);
+  document.getElementById('taylorApoCard').classList.toggle('hidden', !taylorApo);
+  document.getElementById('settingsEngineTitle').textContent = taylor ? 'Taylor Engine' : taylorApo ? 'Taylor APO' : 'Equalizer APO';
+  document.getElementById('settingsEngineName').textContent = taylor ? 'Taylor Engine' : taylorApo ? 'Taylor APO · prototype' : 'Equalizer APO';
+  document.getElementById('settingsEngineFile').parentElement.classList.toggle('hidden', telemetryMode);
+  document.getElementById('settingsAdminRestart').classList.toggle('hidden', telemetryMode || integration.state !== 'needs-admin');
+  document.getElementById('apoDocsLink').classList.toggle('hidden', telemetryMode);
   document.getElementById('engineModeNote').textContent = taylor
     ? 'Taylor Engine xử lý âm thanh qua VB-CABLE; hãy chọn CABLE Output làm đầu vào và loa/tai nghe thật làm đầu ra.'
-    : 'Equalizer APO áp dụng hiệu ứng trên các thiết bị đã được chọn trong Configurator.';
-  document.getElementById('compressorDescription').textContent = taylor
-    ? 'Taylor Engine có compressor tích hợp và limiter bảo vệ luôn bật.'
+    : taylorApo
+      ? 'Taylor APO là prototype chạy trong Windows Audio Engine. Hiện chưa có gói INF triển khai endpoint, vì vậy chuyển chế độ không tự gắn APO.'
+      : 'Equalizer APO áp dụng hiệu ứng trên các thiết bị đã được chọn trong Configurator.';
+  document.getElementById('compressorDescription').textContent = telemetryMode
+    ? 'Taylor DSP có compressor tích hợp; limiter bảo vệ luôn bật.'
     : 'Dùng plugin VST2 compressor tương thích với Equalizer APO.';
-  document.getElementById('vstWarning').textContent = taylor
+  document.getElementById('vstWarning').textContent = telemetryMode
     ? 'Compressor tích hợp đang dùng; limiter brickwall luôn bật ở trần −1 dBFS.'
     : 'Cần chọn plugin VST compressor tương thích trước khi bật.';
-  document.getElementById('vstWarning').classList.toggle('hidden', taylor || Boolean(profile.effects.vstPluginPath) || !profile.effects.compressorEnabled);
-  document.getElementById('analysisDescription').textContent = taylor
-    ? 'Phổ, waveform và mức peak/RMS từ tín hiệu thật đang đi qua Taylor Engine.'
+  document.getElementById('vstWarning').classList.toggle('hidden', telemetryMode || Boolean(profile.effects.vstPluginPath) || !profile.effects.compressorEnabled);
+  document.getElementById('analysisDescription').textContent = telemetryMode
+    ? `Phổ, waveform và mức peak/RMS ${taylorApo ? 'từ callback APO (nếu Windows đã nạp APO)' : 'từ tín hiệu đi qua Taylor Engine'}.`
     : 'Phổ, waveform và mức đỉnh từ loopback âm thanh hệ thống.';
-  document.getElementById('analysisSourceLabel').textContent = taylor ? '● TAYLOR ENGINE' : '● LOOPBACK';
-  document.getElementById('analysisNote').innerHTML = taylor
-    ? '<span>i</span> Telemetry lấy trực tiếp từ engine. Âm thanh chỉ đi qua chuỗi xử lý tới loa/tai nghe, không được giao diện phát lại.'
+  document.getElementById('analysisSourceLabel').textContent = taylor ? '● TAYLOR ENGINE' : taylorApo ? '● TAYLOR APO' : '● LOOPBACK';
+  document.getElementById('analysisNote').innerHTML = telemetryMode
+    ? `<span>i</span> Telemetry nhận qua bridge ${taylorApo ? 'từ audio callback của APO khi endpoint được cấu hình bằng INF' : 'từ Taylor Engine'}. Giao diện không phát lại tín hiệu.`
     : '<span>i</span> Windows sẽ cấp quyền loopback khi bạn bắt đầu. Nếu không thấy tín hiệu, hãy phát âm thanh và kiểm tra thiết bị trong Equalizer APO.';
   updateEngineDisplay();
 }
@@ -476,6 +484,38 @@ function updateEngineDisplay(state = engineState) {
   document.getElementById('engineXruns').textContent = String(engineState.xruns || 0);
   document.getElementById('engineStart').disabled = Boolean(engineState.running);
   document.getElementById('engineStop').disabled = !engineState.running;
+  const apoState = document.getElementById('taylorApoRunState');
+  if (apoState) {
+    apoState.textContent = engineState.running ? 'Đang nhận heartbeat' : 'Chưa thấy audio callback';
+    apoState.classList.toggle('active', Boolean(engineState.running));
+    document.getElementById('taylorApoHeartbeat').textContent = engineState.running ? `Đang chạy · ${engineState.sampleRate || 0} Hz` : (engineState.engineMessage || 'Chưa xác minh');
+  }
+}
+
+function renderCompatibility(report) {
+  if (!report || !Array.isArray(report.devices)) return;
+  compatibilityReport = report;
+  const body = document.getElementById('compatibilityRows');
+  body.replaceChildren();
+  for (const device of report.devices) {
+    const row = document.createElement('tr');
+    const fields = [
+      `${device.name || 'Thiết bị audio'} · ${device.direction || '—'}`,
+      `${device.type || device.deviceType || 'Chưa rõ'} / ${device.bus || 'bus chưa rõ'}`,
+      [device.vendor, device.driverVersion].filter(Boolean).join(' · ') || 'Driver chưa được xác minh',
+      `${device.backend === 'taylor' ? 'Taylor Engine' : 'Equalizer APO'} · ${device.reason || 'Giữ lựa chọn hiện tại'}`,
+      `APO: ${device.apoStatus || 'chưa xác định'} · Engine: ${device.engineStatus || 'chưa xác định'}`
+    ];
+    for (const value of fields) { const cell = document.createElement('td'); cell.textContent = value; row.append(cell); }
+    body.append(row);
+  }
+  if (!report.devices.length) {
+    const row = document.createElement('tr'); const cell = document.createElement('td');
+    cell.colSpan = 5; cell.textContent = 'Chưa lấy được danh sách endpoint audio.'; row.append(cell); body.append(row);
+  }
+  const state = document.getElementById('compatibilityState');
+  state.textContent = report.devices.length ? 'Đã dò · có mục chưa xác minh' : 'Chưa đủ dữ liệu';
+  document.getElementById('compatibilityNotice').textContent = report.notice || 'Thông tin thăm dò không phải chứng nhận tương thích.';
 }
 
 function bindUi() {
@@ -570,7 +610,9 @@ function bindUi() {
     initializeSettings();
     document.getElementById('settingsFeedback').textContent = appSettings.engineMode === 'taylor'
       ? 'Đã chuyển sang Taylor Engine. Chọn thiết bị rồi bấm Bắt đầu engine.'
-      : 'Đã chuyển về Equalizer APO.';
+      : appSettings.engineMode === 'taylor-apo'
+        ? 'Đã mở Taylor APO bridge. APO chỉ xử lý nếu Windows đã nạp APO qua INF của thiết bị.'
+        : 'Đã chuyển về Equalizer APO.';
     if (appSettings.engineMode === 'taylor') updateDeviceOptions(await window.audioApp.listDevices());
     else stopCapture();
   });
@@ -603,6 +645,36 @@ function bindUi() {
     const result = await window.audioApp.stopEngine();
     document.getElementById('deviceFeedback').textContent = result.message || 'Đã dừng engine.';
   });
+  document.getElementById('compatibilityScan').addEventListener('click', async () => {
+    document.getElementById('compatibilityNotice').textContent = 'Đang quét endpoint và thông tin probe…';
+    try { renderCompatibility(await window.audioApp.scanCompatibility()); }
+    catch (error) { document.getElementById('compatibilityNotice').textContent = `Không hoàn tất được thăm dò: ${error.message}`; }
+  });
+  document.getElementById('compatibilitySelfTest').addEventListener('click', async () => {
+    const report = await window.audioApp.scanCompatibility(); renderCompatibility(report);
+    const running = engineState.running;
+    document.getElementById('compatibilityNotice').textContent = running
+      ? 'Engine báo đang chạy. Phát nội dung âm thanh quen thuộc ở âm lượng thấp để xác nhận nghe được; telemetry/xrun được hiển thị ở tab Phân tích. Không phát tone tự động khi không có stream.'
+      : 'Đã dò thiết bị, nhưng chưa xác nhận đường âm thanh đang phát. Không tự phát tone vì thiết bị có thể đang im lặng; hãy chọn backend rồi kiểm tra bằng nội dung ở âm lượng thấp.';
+  });
+  document.getElementById('compatibilityBackendToggle').addEventListener('click', async () => {
+    const mode = ['taylor', 'taylor-apo'].includes(appSettings.engineMode) ? 'apo' : 'taylor';
+    if (engineState.running && mode === 'apo' && !window.confirm('Taylor Engine đang chuyển âm thanh qua thiết bị đã chọn. Chuyển về APO sẽ dừng tuyến engine; nếu Windows vẫn phát vào CABLE Input, bạn cần đổi thiết bị phát mặc định trong Windows Sound. Tiếp tục?')) return;
+    const result = await window.audioApp.selectCompatibilityBackend(mode);
+    if (result.ok) { appSettings.engineMode = mode; renderEngineMode(); }
+    document.getElementById('compatibilityNotice').textContent = result.ok
+      ? `Đã chuyển thủ công sang ${mode === 'taylor' ? 'Taylor Engine' : 'Equalizer APO'}. Hãy xác nhận âm thanh trước khi tiếp tục.`
+      : result.message || 'Không chuyển được backend.';
+  });
+  document.getElementById('compatibilityExport').addEventListener('click', async () => {
+    const result = await window.audioApp.exportCompatibility();
+    if (result.ok) document.getElementById('compatibilityNotice').textContent = 'Đã lưu báo cáo trên máy. Không có dữ liệu nào được tự gửi đi.';
+  });
+  document.getElementById('restoreAudioButton').addEventListener('click', async () => {
+    const result = await window.audioApp.restoreAudio();
+    profile.bypass = true; updateScore();
+    document.getElementById('compatibilityNotice').textContent = result.message || 'Đã yêu cầu bypass DSP.';
+  });
   document.getElementById('addAutoRule').addEventListener('click', () => {
     const processName = document.getElementById('autoProcessName').value.trim().replace(/\.exe$/i, '');
     const presetId = document.getElementById('autoPresetSelect').value;
@@ -620,6 +692,10 @@ function bindUi() {
   document.getElementById('checkAgain').addEventListener('click', checkAgain);
   document.getElementById('onboardingCheck').addEventListener('click', checkAgain);
   document.getElementById('settingsCheckAgain').addEventListener('click', checkAgain);
+  document.getElementById('launchApoConfigurator').addEventListener('click', async () => {
+    const result = await window.audioApp.launchApoConfigurator();
+    document.getElementById('settingsFeedback').textContent = result.message || 'Không mở được Configurator.';
+  });
   document.querySelectorAll('[data-open-url]').forEach((button) => button.addEventListener('click', () => window.audioApp.openExternal(button.dataset.openUrl)));
 
   document.getElementById('openTest').addEventListener('click', () => document.getElementById('testDialog').showModal());
@@ -706,12 +782,12 @@ async function playPinkNoise() {
 }
 
 async function toggleCapture() {
-  if (appSettings.engineMode === 'taylor') {
+  if (['taylor', 'taylor-apo'].includes(appSettings.engineMode)) {
     engineAnalysisLive = !engineAnalysisLive;
     document.getElementById('captureToggle').textContent = engineAnalysisLive ? 'Dừng phân tích' : 'Bắt đầu phân tích';
     document.getElementById('captureState').textContent = engineState.running
-      ? (engineAnalysisLive ? 'Đang nhận telemetry từ Taylor Engine' : 'Đã dừng phân tích')
-      : 'Hãy khởi chạy Taylor Engine để có telemetry';
+      ? (engineAnalysisLive ? `Đang nhận telemetry từ ${appSettings.engineMode === 'taylor-apo' ? 'Taylor APO' : 'Taylor Engine'}` : 'Đã dừng phân tích')
+      : (appSettings.engineMode === 'taylor-apo' ? 'Chưa thấy heartbeat từ APO; kiểm tra gói INF và phát audio.' : 'Hãy khởi chạy Taylor Engine để có telemetry');
     document.getElementById('captureDot').classList.toggle('active', engineAnalysisLive && engineState.running);
     if (engineAnalysisLive) captureFrame = requestAnimationFrame(drawCaptureFrame);
     else { if (captureFrame) cancelAnimationFrame(captureFrame); captureFrame = 0; }
@@ -774,7 +850,7 @@ function prepareCanvas(canvas) {
 }
 
 function drawCaptureFrame() {
-  if (appSettings.engineMode === 'taylor') {
+  if (['taylor', 'taylor-apo'].includes(appSettings.engineMode)) {
     if (!engineAnalysisLive) { captureFrame = 0; return; }
     if (engineTelemetry) drawEngineTelemetry(engineTelemetry);
     captureFrame = requestAnimationFrame(drawCaptureFrame);
@@ -824,7 +900,7 @@ function drawEngineTelemetry(data) {
   document.getElementById('rmsMeter').innerHTML = `${rmsDb.toFixed(1)} <small>dBFS</small>`;
   document.getElementById('peakBar').style.width = `${clamp((peakDb + 60) / 60 * 100, 0, 100)}%`;
   document.getElementById('rmsBar').style.width = `${clamp((rmsDb + 60) / 60 * 100, 0, 100)}%`;
-  document.getElementById('captureState').textContent = `Taylor Engine · ${Number(data.sampleRate) || 0} Hz`;
+  document.getElementById('captureState').textContent = `${appSettings.engineMode === 'taylor-apo' ? 'Taylor APO' : 'Taylor Engine'} · ${Number(data.sampleRate) || 0} Hz`;
   document.getElementById('captureDot').classList.toggle('active', Boolean(engineState.running));
 }
 
@@ -926,13 +1002,11 @@ async function initialize() {
     if (payload.engineError) {
       document.getElementById('deviceFeedback').textContent = payload.engineError.message || 'Taylor Engine gặp lỗi.';
       if (payload.engineError.code === 'FALLBACK_SUGGESTED') {
-        appSettings.engineMode = 'taylor';
-        document.getElementById('engineModeSetting').value = 'taylor';
-        renderEngineMode();
-        document.getElementById('settingsFeedback').textContent = 'Engine gặp lỗi liên tục. Có thể chuyển sang Equalizer APO trong mục Chế độ xử lý.';
+        document.getElementById('settingsFeedback').textContent = 'Taylor Engine/APO bridge gặp lỗi liên tục. Hãy chuyển về Equalizer APO trong mục Chế độ xử lý và xác nhận thiết bị phát trong Windows.';
       }
     }
   });
+  window.audioApp.onCompatibilityUpdate(renderCompatibility);
   const initial = await window.audioApp.getState();
   if (initial.profile) {
     profile = { ...DEFAULT_PROFILE(), ...initial.profile, effects: { ...DEFAULT_PROFILE().effects, ...initial.profile.effects } };
@@ -942,13 +1016,21 @@ async function initialize() {
   }
   if (initial.settings) appSettings = { ...appSettings, ...initial.settings };
   if (initial.devices) updateDeviceOptions(initial.devices);
+  if (initial.compatibilityReport) renderCompatibility(initial.compatibilityReport);
   if (initial.engineState) updateEngineDisplay(initial.engineState);
   initializeSettings(); syncEqControls(); syncEffectControls(); updateScore(); renderIntegration(initial.integration);
   renderPresets();
   document.getElementById('captureState').textContent = 'Chưa bắt đầu';
+  const splash = document.getElementById('appSplash');
+  if (splash) {
+    splash.classList.add('is-leaving');
+    window.setTimeout(() => splash.remove(), 320);
+  }
 }
 
 initialize().catch((error) => {
+  const splash = document.getElementById('appSplash');
+  if (splash) splash.remove();
   document.getElementById('connectionStrip').classList.remove('hidden');
   document.getElementById('connectionTitle').textContent = 'Không thể khởi tạo ứng dụng';
   document.getElementById('connectionMessage').textContent = error.message;

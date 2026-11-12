@@ -8,15 +8,16 @@ class EngineAdapter {
     this.mode = 'apo';
     this.apo = createEqualizerApoEngine();
     this.taylor = new TaylorEngineAdapter(onUpdate);
+    this.taylorApo = new TaylorEngineAdapter(onUpdate, { mode: 'taylor-apo', binaryName: 'tnd-bridge.exe', resourceFolder: 'apo', displayName: 'Taylor APO' });
     this.active = this.apo;
   }
 
   async connect(mode = 'apo') {
-    const nextMode = mode === 'taylor' ? 'taylor' : 'apo';
+    const nextMode = ['taylor', 'taylor-apo'].includes(mode) ? mode : 'apo';
     if (this.mode !== nextMode) {
-      if (this.active === this.taylor) await this.taylor.disconnect();
+      await this.active.disconnect?.();
       this.mode = nextMode;
-      this.active = nextMode === 'taylor' ? this.taylor : this.apo;
+      this.active = nextMode === 'taylor' ? this.taylor : nextMode === 'taylor-apo' ? this.taylorApo : this.apo;
     }
     return this.active.connect();
   }
@@ -25,12 +26,12 @@ class EngineAdapter {
   getStatus() { return this.active.getStatus(); }
   getDetails() { return this.active.getDetails(); }
   getMode() { return this.mode; }
-  listDevices() { return this.mode === 'taylor' ? this.taylor.listDevices() : Promise.resolve([]); }
-  start(options) { return this.mode === 'taylor' ? this.taylor.start(options) : Promise.resolve({ ok: false, message: 'Hãy chọn Taylor Engine trong Cài đặt.' }); }
-  stop() { return this.mode === 'taylor' ? this.taylor.stop() : Promise.resolve({ ok: false }); }
-  setBypass(value) { return this.mode === 'taylor' ? this.taylor.setBypass(value) : Promise.resolve({ ok: false }); }
-  loadImpulse(filePath) { return this.mode === 'taylor' ? this.taylor.loadImpulse(filePath) : Promise.resolve({ ok: false }); }
-  disconnect() { return this.taylor.disconnect(); }
+  listDevices() { return this.mode === 'taylor' ? this.taylor.listDevices() : this.mode === 'taylor-apo' ? this.taylorApo.listDevices() : Promise.resolve([]); }
+  start(options) { return this.mode === 'taylor' ? this.taylor.start(options) : this.mode === 'taylor-apo' ? this.taylorApo.start(options) : Promise.resolve({ ok: false, message: 'Hãy chọn Taylor Engine trong Cài đặt.' }); }
+  stop() { return this.mode === 'taylor' ? this.taylor.stop() : this.mode === 'taylor-apo' ? this.taylorApo.stop() : Promise.resolve({ ok: false }); }
+  setBypass(value) { return this.mode === 'taylor' ? this.taylor.setBypass(value) : this.mode === 'taylor-apo' ? this.taylorApo.setBypass(value) : Promise.resolve({ ok: false }); }
+  loadImpulse(filePath) { return this.mode === 'taylor' ? this.taylor.loadImpulse(filePath) : this.mode === 'taylor-apo' ? this.taylorApo.loadImpulse(filePath) : Promise.resolve({ ok: false }); }
+  disconnect() { return Promise.all([this.taylor.disconnect(), this.taylorApo.disconnect()]); }
 }
 
 module.exports = { EngineAdapter };

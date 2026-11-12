@@ -13,6 +13,11 @@ contextBridge.exposeInMainWorld('audioApp', {
   setEngineBypass: (bypass) => ipcRenderer.invoke('engine:set-bypass', bypass),
   loadEngineImpulse: (filePath) => ipcRenderer.invoke('engine:load-impulse', filePath),
   openSoundSettings: () => ipcRenderer.invoke('engine:open-sound-settings'),
+  launchApoConfigurator: () => ipcRenderer.invoke('apo:launch-configurator'),
+  scanCompatibility: () => ipcRenderer.invoke('compat:scan'),
+  exportCompatibility: () => ipcRenderer.invoke('compat:export'),
+  selectCompatibilityBackend: (mode) => ipcRenderer.invoke('compat:select-backend', mode),
+  restoreAudio: () => ipcRenderer.invoke('compat:restore-audio'),
   setAutostart: (enabled) => ipcRenderer.invoke('settings:set-autostart', enabled),
   chooseFile: (kind) => ipcRenderer.invoke('dialog:choose-file', kind),
   restartAdmin: () => ipcRenderer.invoke('app:restart-admin'),
@@ -20,6 +25,7 @@ contextBridge.exposeInMainWorld('audioApp', {
   windowAction: (action) => ipcRenderer.invoke('window:action', action),
   onStatus: (callback) => ipcRenderer.on('app:status', (_event, payload) => callback(payload)),
   onEngineUpdate: (callback) => ipcRenderer.on('engine:update', (_event, payload) => callback(payload)),
+  onCompatibilityUpdate: (callback) => ipcRenderer.on('compat:update', (_event, report) => callback(report)),
   onMaximized: (callback) => ipcRenderer.on('window:maximized', (_event, value) => callback(value)),
   onWindowHidden: (callback) => ipcRenderer.on('app:window-hidden', callback)
 });

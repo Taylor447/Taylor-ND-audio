@@ -1,0 +1,7 @@
+language = "C"
+include_guard = "TND_DSP_H"
+cpp_compat = true
+usize_is_size_t = true
+
+[export]
+include = ["TndParams", "TndTelemetry", "SharedBlock", "TndHandle", "tnd_create", "tnd_set_params", "tnd_process", "tnd_read_telemetry", "tnd_latency_100ns", "tnd_destroy"]

@@ -4,15 +4,19 @@ const path = require('node:path');
 const WebSocket = require('ws');
 
 class TaylorEngineAdapter {
-  constructor(onUpdate = () => {}) {
+  constructor(onUpdate = () => {}, options = {}) {
     this.onUpdate = onUpdate;
+    this.mode = options.mode || 'taylor';
+    this.binaryName = options.binaryName || 'tnd-engine.exe';
+    this.resourceFolder = options.resourceFolder || 'engine';
+    this.displayName = options.displayName || 'Taylor Engine';
     this.child = null;
     this.socket = null;
     this.boot = null;
     this.intentionalStop = false;
     this.restartCount = 0;
     this.restartTimer = null;
-    this.status = { state: 'disconnected', message: 'Taylor Engine chưa khởi chạy.' };
+    this.status = { state: 'disconnected', message: `${this.displayName} chưa khởi chạy.` };
     this.devices = [];
     this.latestState = { running: false, sampleRate: 0, latencyMs: 0, xruns: 0 };
     this.pending = new Map();
@@ -23,11 +27,12 @@ class TaylorEngineAdapter {
   }
 
   get executablePath() {
-    if (process.resourcesPath) return path.join(process.resourcesPath, 'engine', 'tnd-engine.exe');
-    return path.resolve(__dirname, '..', '..', 'engine', 'target', 'release', 'tnd-engine.exe');
+    if (process.resourcesPath) return path.join(process.resourcesPath, this.resourceFolder, this.binaryName);
+    const sourceFolder = this.mode === 'taylor-apo' ? 'bridge' : 'engine';
+    return path.resolve(__dirname, '..', '..', sourceFolder, 'target', 'release', this.binaryName);
   }
 
-  getStatus() { return { ...this.status, ...this.latestState, mode: 'taylor' }; }
+  getStatus() { return { ...this.status, ...this.latestState, mode: this.mode }; }
   getDetails() { return { executablePath: this.executablePath, port: this.boot?.port || null }; }
 
   async connect() {
@@ -37,7 +42,9 @@ class TaylorEngineAdapter {
       await this.launchSidecar();
       this.restartCount = 0;
       this.send({ type: 'listDevices' });
-      this.status = { state: 'connected', message: 'Taylor Engine đã sẵn sàng. Chọn thiết bị đầu vào và đầu ra để bắt đầu.' };
+      this.status = { state: 'connected', message: this.mode === 'taylor-apo'
+        ? 'Bridge đã sẵn sàng. APO chỉ xử lý khi được gắn vào endpoint bằng gói INF phù hợp.'
+        : 'Taylor Engine đã sẵn sàng. Chọn thiết bị đầu vào và đầu ra để bắt đầu.' };
     } catch (error) {
       // Dọn sidecar lỗi khởi động để không để lại tiến trình mồ côi.
       this.socket?.close();
@@ -45,9 +52,9 @@ class TaylorEngineAdapter {
       const child = this.child;
       this.child = null;
       if (child && !child.killed) child.kill();
-      this.status = { state: 'error', message: `Không khởi chạy được Taylor Engine: ${error.message}` };
+      this.status = { state: 'error', message: `Không khởi chạy được ${this.displayName}: ${error.message}` };
     }
-    this.onUpdate({ integration: this.getStatus(), engineMode: 'taylor', devices: this.devices });
+    this.onUpdate({ integration: this.getStatus(), engineMode: this.mode, devices: this.devices });
     return this.getStatus();
   }
 
@@ -103,8 +110,8 @@ class TaylorEngineAdapter {
     socket.on('message', (data) => this.receive(data));
     socket.once('error', (error) => {
       if (socket.readyState !== WebSocket.OPEN) { clearTimeout(timer); reject(error); }
-      this.status = { state: 'error', message: `Kết nối IPC tới Taylor Engine gặp lỗi: ${error.message}` };
-      this.onUpdate({ integration: this.getStatus(), engineMode: 'taylor' });
+      this.status = { state: 'error', message: `Kết nối IPC tới ${this.displayName} bridge gặp lỗi: ${error.message}` };
+      this.onUpdate({ integration: this.getStatus(), engineMode: this.mode });
     });
     socket.once('close', () => {
       if (this.socket === socket) this.socket = null;
@@ -117,15 +124,15 @@ class TaylorEngineAdapter {
     if (message.type === 'devices') {
       this.devices = Array.isArray(message.devices) ? message.devices : [];
       for (const resolve of this.deviceWaiters.splice(0)) resolve(this.devices);
-      this.onUpdate({ devices: this.devices, cableDetected: Boolean(message.cableDetected), engineMode: 'taylor' });
+      this.onUpdate({ devices: this.devices, cableDetected: Boolean(message.cableDetected), engineMode: this.mode });
     } else if (message.type === 'state') {
       this.latestState = { running: Boolean(message.running), sampleRate: Number(message.sampleRate) || 0,
         latencyMs: Number(message.latencyMs) || 0, xruns: Number(message.xruns) || 0, engineMessage: message.message || '' };
-      this.onUpdate({ engineState: this.latestState, integration: this.getStatus(), engineMode: 'taylor' });
+      this.onUpdate({ engineState: this.latestState, integration: this.getStatus(), engineMode: this.mode });
     } else if (message.type === 'telemetry') {
-      this.onUpdate({ telemetry: message, engineMode: 'taylor' });
+      this.onUpdate({ telemetry: message, engineMode: this.mode });
     } else if (message.type === 'error') {
-      this.onUpdate({ engineError: { code: message.code, message: message.message }, engineMode: 'taylor' });
+      this.onUpdate({ engineError: { code: message.code, message: message.message }, engineMode: this.mode });
     } else if (message.type === 'ack') {
       const waiting = this.pending.get(message.request);
       if (waiting) {
@@ -142,12 +149,12 @@ class TaylorEngineAdapter {
   }
 
   request(type, fields = {}) {
-    if (!this.send({ type, ...fields })) return Promise.resolve({ ok: false, message: 'Taylor Engine chưa kết nối.' });
+    if (!this.send({ type, ...fields })) return Promise.resolve({ ok: false, message: `${this.displayName} chưa kết nối.` });
     return new Promise((resolve) => {
       const key = type === 'setProfile' ? 'setProfile' : type;
       const timer = setTimeout(() => {
         this.pending.delete(key);
-        resolve({ ok: false, message: `Taylor Engine không phản hồi lệnh ${type}. Hãy kiểm tra trạng thái engine.` });
+        resolve({ ok: false, message: `${this.displayName} không phản hồi lệnh ${type}. Hãy kiểm tra trạng thái.` });
       }, 1800);
       const previous = this.pending.get(key);
       if (previous) { clearTimeout(previous.timer); previous.resolve({ ok: true, message: 'Đã thay bằng cập nhật mới hơn.' }); }
@@ -174,17 +181,22 @@ class TaylorEngineAdapter {
   }
 
   async start(options) {
+    if (this.mode === 'taylor-apo') return { ok: false, message: 'Taylor APO không mở stream thủ công; Windows tự đưa tín hiệu qua APO đã đăng ký trong endpoint.' };
     const result = await this.request('start', options);
     if (result.ok) this.lastStartOptions = { ...options };
     return result;
   }
   async stop() {
+    if (this.mode === 'taylor-apo') return this.setBypass(true);
     const result = await this.request('stop');
     if (result.ok) this.lastStartOptions = null;
     return result;
   }
   async setBypass(bypass) { return this.request('setBypass', { bypass }); }
-  async loadImpulse(filePath) { return this.request('loadImpulse', { path: filePath }); }
+  async loadImpulse(filePath) {
+    if (this.mode === 'taylor-apo') return { ok: false, message: 'Nạp IR qua APO prototype hiện chưa hỗ trợ.' };
+    return this.request('loadImpulse', { path: filePath });
+  }
 
   async disconnect() {
     this.intentionalStop = true;
@@ -199,7 +211,7 @@ class TaylorEngineAdapter {
     for (const pending of this.pending.values()) { clearTimeout(pending.timer); pending.resolve({ ok: false, message: 'Engine đã dừng.' }); }
     this.pending.clear();
     for (const resolve of this.deviceWaiters.splice(0)) resolve(this.devices);
-    this.status = { state: 'disconnected', message: 'Taylor Engine đã dừng.' };
+    this.status = { state: 'disconnected', message: `${this.displayName} đã dừng.` };
     this.latestState = { running: false, sampleRate: 0, latencyMs: 0, xruns: 0 };
   }
 
@@ -209,18 +221,18 @@ class TaylorEngineAdapter {
     this.socket = null;
     this.child = null;
     this.latestState = { running: false, sampleRate: 0, latencyMs: 0, xruns: 0 };
-    for (const pending of this.pending.values()) { clearTimeout(pending.timer); pending.resolve({ ok: false, message: 'Taylor Engine đã đóng kết nối.' }); }
+    for (const pending of this.pending.values()) { clearTimeout(pending.timer); pending.resolve({ ok: false, message: `${this.displayName} đã đóng kết nối.` }); }
     this.pending.clear();
-    const reason = `Taylor Engine đóng bất ngờ (mã ${code ?? signal ?? 'không rõ'}).`;
+    const reason = `${this.displayName} bridge đóng bất ngờ (mã ${code ?? signal ?? 'không rõ'}).`;
     this.status = { state: 'error', message: reason };
-    this.onUpdate({ integration: this.getStatus(), engineError: { code: 'ENGINE_EXIT', message: reason }, engineMode: 'taylor' });
+    this.onUpdate({ integration: this.getStatus(), engineError: { code: 'ENGINE_EXIT', message: reason }, engineMode: this.mode });
     this.scheduleRestart(reason);
   }
 
   scheduleRestart(reason) {
     if (this.restartCount >= 3) {
       this.status.message = `${reason} Đã thử khởi động lại 3 lần; hãy chuyển về Equalizer APO trong Cài đặt.`;
-      this.onUpdate({ integration: this.getStatus(), engineError: { code: 'FALLBACK_SUGGESTED', message: this.status.message }, engineMode: 'taylor' });
+      this.onUpdate({ integration: this.getStatus(), engineError: { code: 'FALLBACK_SUGGESTED', message: this.status.message }, engineMode: this.mode });
       return;
     }
     this.restartCount += 1;
@@ -230,7 +242,7 @@ class TaylorEngineAdapter {
       try {
         await this.launchSidecar();
         this.restartInFlight = false;
-        this.status = { state: 'connected', message: `Taylor Engine đã tự khởi động lại (${attempt}/3).` };
+        this.status = { state: 'connected', message: `${this.displayName} bridge đã tự khởi động lại (${attempt}/3).` };
         this.send({ type: 'listDevices' });
         if (this.lastProfile) await this.applyProfile(this.lastProfile);
         // Khôi phục tuyến audio đã chọn trước khi engine gặp sự cố.
@@ -242,14 +254,14 @@ class TaylorEngineAdapter {
             this.status = { state: 'error', message: `Engine đã mở lại nhưng chưa thể khôi phục thiết bị: ${startResult.message}` };
           }
         }
-        this.onUpdate({ integration: this.getStatus(), engineMode: 'taylor' });
+        this.onUpdate({ integration: this.getStatus(), engineMode: this.mode });
       } catch (error) {
         this.restartInFlight = false;
         this.status = { state: 'error', message: `Lần khởi động lại ${attempt}/3 thất bại: ${error.message}` };
         const child = this.child;
         this.child = null;
         if (child && !child.killed) child.kill();
-        this.onUpdate({ integration: this.getStatus(), engineError: { code: 'ENGINE_RESTART_FAILED', message: this.status.message }, engineMode: 'taylor' });
+        this.onUpdate({ integration: this.getStatus(), engineError: { code: 'ENGINE_RESTART_FAILED', message: this.status.message }, engineMode: this.mode });
         this.scheduleRestart(this.status.message);
       }
     }, 500 * 2 ** (attempt - 1));

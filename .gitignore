@@ -1,6 +1,13 @@
 node_modules/
 dist/
+.npm-cache/
+.playwright-browsers/
 *.log
 
 engine/target/
+dsp-core/target/
+bridge/target/
+build/
+stage-c/
+compat-reports/
 

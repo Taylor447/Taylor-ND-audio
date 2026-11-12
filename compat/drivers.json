@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-11-12",
+  "rules": [
+    {
+      "id": "virtual-cable-input",
+      "priority": 100,
+      "match": { "nameContains": ["cable input", "voicemeeter input", "virtual audio cable"] },
+      "recommendation": "taylor-engine",
+      "status": "supported-with-routing",
+      "reason": "Thiết bị ảo phù hợp làm tuyến đầu vào cho Taylor Engine; cần chọn đúng thiết bị ghi tương ứng.",
+      "knownIssues": ["Không chọn chính cáp ảo làm đầu ra vật lý của engine để tránh vòng lặp."]
+    },
+    {
+      "id": "bluetooth-endpoint",
+      "priority": 90,
+      "match": { "nameContains": ["bluetooth", "hands-free", "hands free", "a2dp", "le audio"] },
+      "recommendation": "equalizer-apo",
+      "status": "conditional",
+      "reason": "Bluetooth thường thêm độ trễ codec/buffer; APO tránh tuyến capture-playback bổ sung.",
+      "knownIssues": ["Taylor Engine có thể tăng độ trễ; dùng buffer 10–20 ms cho ổn định."]
+    },
+    {
+      "id": "hdmi-display-audio",
+      "priority": 80,
+      "match": { "nameContains": ["hdmi", "display audio", "displayport", "nvidia high definition", "amd high definition"] },
+      "recommendation": "equalizer-apo",
+      "status": "conditional",
+      "reason": "Đầu ra HDMI/DisplayPort phụ thuộc driver GPU và trạng thái màn hình/receiver.",
+      "knownIssues": ["Endpoint có thể biến mất khi tắt màn hình hoặc đổi AVR."]
+    },
+    {
+      "id": "usb-audio",
+      "priority": 70,
+      "match": { "nameContains": ["usb audio", "usb dac", "usb sound"] },
+      "recommendation": "equalizer-apo",
+      "status": "conditional",
+      "reason": "USB DAC thường ổn ở shared mode; APO là lựa chọn ít bước định tuyến hơn.",
+      "knownIssues": ["Một số driver độc quyền từ chối định dạng hoặc shared stream."]
+    },
+    {
+      "id": "inbox-class-audio",
+      "priority": 60,
+      "match": { "nameContains": ["high definition audio", "usb audio device", "realtek", "intel smart sound", "cirrus"] },
+      "recommendation": "equalizer-apo",
+      "status": "conditional",
+      "reason": "Thiết bị Windows audio phổ biến; kiểm tra APO/hiệu ứng trước khi chọn engine.",
+      "knownIssues": ["OEM APO hoặc enhancement có thể chiếm registration point."]
+    }
+  ],
+  "fallback": {
+    "recommendation": "equalizer-apo",
+    "status": "unknown",
+    "reason": "Chưa có quy tắc cho thiết bị này; giữ engine đang dùng và không tự đổi tuyến âm thanh."
+  }
+}

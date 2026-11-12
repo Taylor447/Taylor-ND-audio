@@ -7,17 +7,30 @@
   "author": "Taylor ND Audio",
   "license": "MIT",
   "scripts": {
-    "prestart": "npm run build:engine",
+    "prestart": "npm run build:brand && npm run build:engine",
     "start": "electron .",
-    "build:engine": "cargo build --release --manifest-path engine/Cargo.toml",
+    "build:brand": "node scripts/build-brand.mjs",
+    "qa:website": "node scripts/qa-website.mjs",
+    "build:engine": "cargo build --release --manifest-path engine/Cargo.toml --bins",
+    "build:stage-c": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-stage-c.ps1",
     "bench:engine": "cargo bench --manifest-path engine/Cargo.toml",
-    "dist": "npm run build:engine && electron-builder --win nsis"
+    "dist": "npm run build:brand && npm run build:engine && npm run build:stage-c && electron-builder --win nsis"
   },
   "devDependencies": {
+    "axe-core": "^4.14.0",
     "electron": "45.3.1",
-    "electron-builder": "26.18.1"
+    "electron-builder": "26.18.1",
+    "fontkit": "^3.0.0",
+    "html-validate": "^11.21.0",
+    "lighthouse": "^13.6.0",
+    "opentype.js": "^2.0.0",
+    "playwright": "^1.65.0",
+    "sharp": "^0.35.5",
+    "svgo": "^4.1.0"
   },
   "dependencies": {
+    "@fontsource-variable/montserrat": "^5.3.0",
+    "@fontsource/be-vietnam-pro": "^5.3.0",
     "ws": "8.18.3"
   },
   "build": {
@@ -31,19 +44,42 @@
     "files": [
       "src/**/*",
       "assets/**/*",
+      "compat/**/*",
       "package.json"
     ],
     "extraResources": [
       {
         "from": "engine/target/release/tnd-engine.exe",
         "to": "engine/tnd-engine.exe"
+      },
+      {
+        "from": "engine/target/release/tnd-probe.exe",
+        "to": "engine/tnd-probe.exe"
+      },
+      {
+        "from": "stage-c/apo/taylor-apo.dll",
+        "to": "apo/taylor-apo.dll"
+      },
+      {
+        "from": "stage-c/bridge/tnd-bridge.exe",
+        "to": "apo/tnd-bridge.exe"
+      },
+      {
+        "from": "stage-c/tools/taylor-configurator.exe",
+        "to": "apo/taylor-configurator.exe"
+      },
+      {
+        "from": "stage-c/tools/tnd-recover.exe",
+        "to": "apo/tnd-recover.exe"
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "assets/taylor-nd-audio.ico",
@@ -58,6 +94,7 @@
       "shortcutName": "Taylor ND Audio",
       "installerIcon": "assets/taylor-nd-audio.ico",
       "uninstallerIcon": "assets/taylor-nd-audio.ico",
+      "include": "installer/custom.nsh",
       "perMachine": false,
       "deleteAppDataOnUninstall": false
     }

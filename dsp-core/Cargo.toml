@@ -1,0 +1,17 @@
+[package]
+name = "tnd-dsp-core"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[lib]
+name = "tnd_dsp_core"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+hound = "=3.5.1"
+rustfft = "=6.4.1"
+serde = { version = "=1.0.228", features = ["derive"] }
+
+[build-dependencies]
+cbindgen = "=0.29.0"

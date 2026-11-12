@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFile } = require('node:child_process');
 const dsp = require('./dsp/engine');
+const { CompatibilityManager } = require('./compat/manager');
 
 const APP_ID = 'com.taylorn.audio';
 const DEFAULT_HOTKEY = 'Ctrl+Alt+F12';
@@ -21,6 +22,8 @@ let knownPresets = [];
 let activeAutoPresetId = null;
 let writeQueue = Promise.resolve();
 let foregroundCheckRunning = false;
+let compatibilityReport = { generatedAt: null, devices: [], softwareConflicts: [], notice: 'Chưa quét thiết bị.' };
+let compatibilityManager = null;
 
 if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
 app.setName('Taylor ND Audio');
@@ -81,7 +84,7 @@ function loadSavedData() {
   knownPresets = readJson(dataFile('known-presets.json'), []);
   if (savedProfile && Array.isArray(savedProfile.eq)) currentProfile = normalizeProfile(savedProfile);
   if (savedSettings && typeof savedSettings === 'object') settings = { ...settings, ...savedSettings };
-  settings.engineMode = settings.engineMode === 'taylor' ? 'taylor' : 'apo';
+  settings.engineMode = ['taylor', 'taylor-apo'].includes(settings.engineMode) ? settings.engineMode : 'apo';
   settings.inputId = typeof settings.inputId === 'string' ? settings.inputId.slice(0, 512) : '';
   settings.outputId = typeof settings.outputId === 'string' ? settings.outputId.slice(0, 512) : '';
   settings.bufferMs = [5, 10, 20].includes(Number(settings.bufferMs)) ? Number(settings.bufferMs) : 10;
@@ -95,6 +98,11 @@ function publishStatus() {
     mainWindow.webContents.send('app:status', { integration, profile: currentProfile, settings, engineMode: settings.engineMode, engineState: dsp.getStatus(), automationPresetId: activeAutoPresetId });
   }
   rebuildTrayMenu();
+}
+
+function publishCompatibility(report) {
+  compatibilityReport = report;
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('compat:update', report);
 }
 
 function createWindow() {
@@ -272,7 +280,29 @@ function restartAsAdministrator() {
 function installIpcHandlers() {
   ipcMain.handle('app:get-state', async () => {
     await initPromise;
-    return { integration, profile: currentProfile, settings, engineMode: settings.engineMode, engineState: dsp.getStatus(), devices: await dsp.listDevices(), automationPresetId: activeAutoPresetId };
+    return { integration, profile: currentProfile, settings, engineMode: settings.engineMode, engineState: dsp.getStatus(), devices: await dsp.listDevices(), compatibilityReport, automationPresetId: activeAutoPresetId };
+  });
+
+  ipcMain.handle('compat:scan', async () => compatibilityManager.scan());
+  ipcMain.handle('compat:export', async () => compatibilityManager.exportAnonymous(compatibilityReport));
+  ipcMain.handle('compat:select-backend', async (_event, mode) => {
+    if (!['apo', 'taylor', 'taylor-apo'].includes(mode)) return { ok: false, message: 'Backend không hợp lệ.' };
+    settings = { ...settings, engineMode: mode };
+    writeJson(dataFile('settings.json'), settings);
+    integration = await dsp.connect(mode);
+    const result = await queueProfileWrite(currentProfile);
+    if (result.status) integration = result.status;
+    publishStatus();
+    await compatibilityManager.scan();
+    return { ok: true, integration };
+  });
+  ipcMain.handle('compat:restore-audio', async () => {
+    // Bật bypass để loại bỏ DSP; không sửa driver, APO của hãng hay thiết bị mặc định.
+    currentProfile = { ...currentProfile, bypass: true };
+    writeJson(dataFile('profile.json'), currentProfile);
+    const result = await queueProfileWrite(currentProfile);
+    publishStatus();
+    return { ok: Boolean(result?.ok), message: 'Đã yêu cầu bypass DSP. Nếu tuyến engine qua cáp ảo đang chạy, hãy dừng engine và khôi phục thiết bị phát mặc định trong Windows Sound.' };
   });
 
   ipcMain.handle('app:check-again', async () => {
@@ -295,6 +325,9 @@ function installIpcHandlers() {
 
   ipcMain.handle('settings:update', async (_event, patch) => {
     const next = { ...settings, ...patch };
+    if (Object.hasOwn(patch || {}, 'engineMode') && !['apo', 'taylor', 'taylor-apo'].includes(next.engineMode)) {
+      return { ok: false, message: 'Chế độ xử lý âm thanh không hợp lệ.' };
+    }
     if (Object.hasOwn(patch || {}, 'hotkey')) {
       const result = registerHotkey(String(next.hotkey || '').trim());
       if (!result.ok) return result;
@@ -340,6 +373,18 @@ function installIpcHandlers() {
     if (process.platform !== 'win32') return { ok: false, message: 'Chỉ hỗ trợ Windows.' };
     try { await shell.openExternal('ms-settings:sound'); return { ok: true }; }
     catch (error) { return { ok: false, message: `Không mở được cài đặt âm thanh: ${error.message}` }; }
+  });
+  ipcMain.handle('apo:launch-configurator', async () => {
+    if (process.platform !== 'win32') return { ok: false, message: 'Configurator APO chỉ chạy trên Windows.' };
+    const executable = process.resourcesPath
+      ? path.join(process.resourcesPath, 'apo', 'taylor-configurator.exe')
+      : path.resolve(__dirname, '..', 'stage-c', 'tools', 'taylor-configurator.exe');
+    if (!fs.existsSync(executable)) return { ok: false, message: 'Chưa có taylor-configurator.exe. Hãy build Stage C trước.' };
+    const command = `Start-Process -FilePath ${quotePowerShell(executable)} -ArgumentList '--guided' -Verb RunAs`;
+    const encoded = Buffer.from(command, 'utf16le').toString('base64');
+    return new Promise((resolve) => execFile('powershell.exe', ['-NoLogo', '-NoProfile', '-EncodedCommand', encoded], { windowsHide: true }, (error) => {
+      resolve(error ? { ok: false, message: 'Chưa mở được Configurator; có thể yêu cầu UAC đã bị hủy.' } : { ok: true, message: 'Configurator đã được mở. Prototype chỉ liệt kê thiết bị, chưa cài APO vào endpoint.' });
+    }));
   });
 
   ipcMain.handle('automation:set-presets', async (_event, presets) => {
@@ -402,16 +447,22 @@ if (gotLock) app.whenReady().then(() => {
   });
 
   installIpcHandlers();
+  compatibilityManager = new CompatibilityManager({
+    app, engine: dsp, getSettings: () => settings, getIntegration: () => integration, onUpdate: publishCompatibility
+  });
+  compatibilityManager.startWatchdog();
   dsp.setUpdateHandler((payload) => {
     if (payload.integration) integration = payload.integration;
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('engine:update', payload);
   });
   initPromise = initializeEngine();
+  initPromise.then(() => compatibilityManager.scan().catch((error) => publishCompatibility({ generatedAt: new Date().toISOString(), devices: [], softwareConflicts: [], notice: `Không quét được thiết bị: ${error.message}` })));
   setInterval(pollForegroundApplication, 2500).unref();
   app.on('activate', showWindow);
 });
 
 app.on('will-quit', () => {
+  compatibilityManager?.stopWatchdog();
   globalShortcut.unregisterAll();
   void dsp.disconnect();
 });

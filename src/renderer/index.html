@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; font-src 'self'; script-src 'self'; connect-src 'self' ws://127.0.0.1:*;">
+  <link rel="stylesheet" href="fonts.css">
   <title>Taylor ND Audio · Power Your Sound</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -18,6 +19,10 @@
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
     <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 10v4h4l5 4V6l-5 4H4Zm12-2a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
   </svg>
+  <div class="app-splash" id="appSplash" role="status" aria-label="Taylor ND Audio đang khởi động">
+    <img src="../../assets/logo-animated.svg" alt="" width="104" height="114">
+    <strong>TAYLOR ND</strong><span>AUDIO · POWER YOUR SOUND</span>
+  </div>
 
   <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
   <div class="window-shell">
@@ -130,7 +135,15 @@
         <div class="page-heading"><div><span class="eyebrow">CÁ NHÂN HÓA PHÒNG ÂM THANH</span><h1>Cài đặt <em>ứng dụng</em></h1><p>Giao diện, cách khởi chạy và phím tắt nhanh.</p></div></div>
         <div class="settings-layout">
           <div class="settings-column">
-            <article class="glass-card settings-card"><div class="settings-card-head"><div><span class="eyebrow">CHẾ ĐỘ XỬ LÝ</span><h2>Chọn engine âm thanh</h2></div></div><label class="field-label" for="engineModeSetting">Engine DSP</label><select class="device-select" id="engineModeSetting"><option value="apo">Equalizer APO</option><option value="taylor">Taylor Engine</option></select><p class="settings-hint">Taylor Engine nhận âm thanh qua VB-CABLE rồi phát ra thiết bị thật. Equalizer APO tiếp tục dùng cấu hình hiện có.</p></article>
+            <article class="glass-card settings-card"><div class="settings-card-head"><div><span class="eyebrow">CHẾ ĐỘ XỬ LÝ</span><h2>Chọn engine âm thanh</h2></div></div><label class="field-label" for="engineModeSetting">Engine DSP</label><select class="device-select" id="engineModeSetting"><option value="apo">Equalizer APO</option><option value="taylor">Taylor Engine</option><option value="taylor-apo">Taylor APO · thử nghiệm</option></select><p class="settings-hint">Taylor Engine cần VB-CABLE. Taylor APO là prototype cần gói INF theo thiết bị; chưa cài trực tiếp vào endpoint.</p></article>
+            <article class="glass-card settings-card compatibility-card" id="compatibilityCard">
+              <div class="settings-card-head"><div><span class="eyebrow">PHẠM VI TƯƠNG THÍCH</span><h2>Tương thích âm thanh</h2></div><span class="engine-state-pill" id="compatibilityState">Đang dò</span></div>
+              <p class="settings-hint">Taylor ND Audio không thể bảo đảm mọi driver. Thiết bị chưa xác minh sẽ được giữ nguyên backend hiện tại; ứng dụng không tự ghi đè APO của hãng.</p>
+              <div class="compat-actions"><button class="button-outline" id="compatibilityScan">Kiểm tra lại</button><button class="button-outline" id="compatibilitySelfTest">Chạy tự kiểm tra</button><button class="button-outline" id="compatibilityBackendToggle">Chuyển backend thủ công</button><button class="button-outline" id="compatibilityExport">Xuất báo cáo JSON ẩn danh</button></div>
+              <div class="compat-table-wrap"><table class="compat-table"><thead><tr><th>Thiết bị</th><th>Loại / bus</th><th>Driver</th><th>Backend hiện tại · lý do</th><th>APO / Engine</th></tr></thead><tbody id="compatibilityRows"><tr><td colspan="5">Chưa có kết quả thăm dò.</td></tr></tbody></table></div>
+              <p class="settings-feedback" id="compatibilityNotice">Thông tin chưa được xác minh trên máy này.</p>
+              <div class="compat-restore"><div><b>Khôi phục âm thanh</b><small>Bật bypass DSP. Nếu đang định tuyến qua cáp ảo, hãy dừng Taylor Engine và khôi phục thiết bị mặc định trong Windows.</small></div><button class="button-primary compact" id="restoreAudioButton">Bypass DSP</button></div>
+            </article>
             <article class="glass-card settings-card hidden" id="taylorDeviceCard"><div class="settings-card-head"><div><span class="eyebrow">THIẾT BỊ ÂM THANH</span><h2>Taylor Engine</h2></div><span class="engine-state-pill" id="engineRunState">Đã dừng</span></div>
               <label class="field-label" for="engineInputSelect">Đầu vào · Recording</label><select class="device-select" id="engineInputSelect"></select>
               <label class="field-label" for="engineOutputSelect">Đầu ra · Playback</label><select class="device-select" id="engineOutputSelect"></select>
@@ -141,6 +154,13 @@
               <p class="settings-feedback" id="deviceFeedback"></p>
               <div class="cable-onboarding" id="cableOnboarding"><strong id="cableTitle">Đang kiểm tra VB-CABLE…</strong><p id="cableMessage">VB-CABLE Input là thiết bị phát; CABLE Output là thiết bị ghi. Chọn CABLE Output ở đầu vào và loa/tai nghe thật ở đầu ra.</p><button class="button-outline small" id="checkCable">Kiểm tra lại cáp</button><button class="inline-link" data-open-url="https://vb-audio.com/Cable/">Tải VB-CABLE ↗</button><small>VB-CABLE là donationware của VB-Audio; Taylor ND Audio không đóng gói driver. Cài bằng quyền Administrator rồi khởi động lại Windows.</small></div>
               <p class="settings-hint">Đặt “CABLE Input” làm thiết bị phát mặc định trong Windows. Không chọn CABLE Input làm đầu ra của engine vì sẽ tạo vòng lặp.</p>
+            </article>
+            <article class="glass-card settings-card hidden" id="taylorApoCard"><div class="settings-card-head"><div><span class="eyebrow">APO TRONG WINDOWS AUDIO ENGINE</span><h2>Taylor APO</h2></div><span class="engine-state-pill" id="taylorApoRunState">Chưa xác minh</span></div>
+              <p class="settings-hint">APO prototype có thể xử lý khi Windows đã nạp DLL qua gói INF phù hợp với driver. Chọn chế độ này không tự sửa endpoint hay tắt bảo vệ audiodg.</p>
+              <div class="settings-meta"><span>Heartbeat</span><b id="taylorApoHeartbeat">Chưa thấy audio callback</b></div>
+              <div class="settings-meta"><span>Độ trễ limiter báo cáo</span><b>1,5 ms</b></div>
+              <button class="button-outline" id="launchApoConfigurator">Mở hướng dẫn APO (Administrator)</button>
+              <p class="inline-warning">Prototype hiện chưa có gói INF/extension phát hành; Configurator chỉ liệt kê endpoint. Hãy thử trong VM có snapshot trước.</p>
             </article>
             <article class="glass-card settings-card"><div class="settings-card-head"><div><span class="eyebrow">GIAO DIỆN</span><h2>Màu sắc không gian</h2></div></div><div class="theme-grid"><button class="theme-option selected" data-theme-choice="amber"><i class="swatch amber-swatch"></i><span>Amber</span></button><button class="theme-option" data-theme-choice="violet"><i class="swatch violet-swatch"></i><span>Violet</span></button><button class="theme-option" data-theme-choice="ocean"><i class="swatch ocean-swatch"></i><span>Ocean</span></button><button class="theme-option" data-theme-choice="forest"><i class="swatch forest-swatch"></i><span>Forest</span></button><button class="theme-option" data-theme-choice="rose"><i class="swatch rose-swatch"></i><span>Rose</span></button></div><label class="switch-row setting-switch"><span><b>Chế độ sáng</b><small>Giao diện sáng dịu mắt</small></span><input id="lightModeSetting" type="checkbox"><i></i></label></article>
             <article class="glass-card settings-card"><div class="settings-card-head"><div><span class="eyebrow">KHỞI ĐỘNG</span><h2>Truy cập nhanh</h2></div></div><label class="switch-row setting-switch"><span><b>Khởi động cùng Windows</b><small>Mở Taylor ND Audio khi đăng nhập</small></span><input id="autostartSetting" type="checkbox"><i></i></label><div class="hotkey-row"><div><b>Bật / tắt xử lý âm thanh</b><small>Phím tắt toàn cục để chuyển bypass</small></div><input id="hotkeyInput" value="Ctrl+Alt+F12" spellcheck="false"><button class="button-outline small" id="saveHotkey">Lưu</button></div><div class="automation-block"><label class="switch-row setting-switch"><span><b>Tự đổi preset theo ứng dụng</b><small>Dùng ứng dụng đang ở phía trước màn hình</small></span><input id="autoPresetSetting" type="checkbox"><i></i></label><div class="automation-editor"><input id="autoProcessName" placeholder="Tên tiến trình, ví dụ: chrome" spellcheck="false"><select id="autoPresetSelect" aria-label="Preset tự động"></select><button class="button-outline small" id="addAutoRule">Thêm</button></div><div id="automationRules" class="automation-rules"></div><p class="automation-note">Nhập tên tiến trình không cần “.exe”. Ứng dụng chỉ được kiểm tra khi bật tùy chọn này.</p></div><p class="settings-feedback" id="settingsFeedback"></p></article>
