@@ -1,5 +1,39 @@
-Get-Content: 
-Line |
-   2 |  Get-Content -Raw -LiteralPath '.github/workflows/pages.yml'
-     |  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     | Cannot find path '.github/workflows/pages.yml' because it does not exist.
+name: Deploy Taylor ND Audio website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v7
+      - name: Cấu hình GitHub Pages
+        # Lần đầu cần đặt Settings → Pages → Source thành GitHub Actions.
+        uses: actions/configure-pages@v6
+      - name: Đóng gói website tĩnh
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: website
+      - name: Đăng website
+        id: deployment
+        uses: actions/deploy-pages@v5
+
