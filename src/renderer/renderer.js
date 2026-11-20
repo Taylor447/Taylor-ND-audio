@@ -518,6 +518,23 @@ function renderCompatibility(report) {
   document.getElementById('compatibilityNotice').textContent = report.notice || 'Thông tin thăm dò không phải chứng nhận tương thích.';
 }
 
+function renderMobileRemote(status, qrDataUrl = '') {
+  const state = status || { running: false };
+  const active = Boolean(state.running);
+  document.getElementById('mobileRemoteState').textContent = active ? `Đang bật · ${state.pairedDevices || 0} điện thoại` : 'Đang tắt';
+  document.getElementById('startMobileRemote').disabled = active;
+  document.getElementById('stopMobileRemote').disabled = !active;
+  document.getElementById('mobileRemotePairing').classList.toggle('hidden', !active);
+  if (active && state.url) {
+    document.getElementById('mobileRemoteUrl').textContent = state.url;
+    if (qrDataUrl) document.getElementById('mobileRemoteQr').src = qrDataUrl;
+  }
+  if (!active) {
+    document.getElementById('mobileRemoteQr').removeAttribute('src');
+    document.getElementById('mobileRemoteUrl').textContent = 'Liên kết ghép nối sẽ hiện ở đây.';
+  }
+}
+
 function bindUi() {
   document.querySelectorAll('[data-go]').forEach((button) => button.addEventListener('click', () => setPage(button.dataset.go)));
   document.getElementById('topPresets').addEventListener('click', () => setPage('presets'));
@@ -603,6 +620,29 @@ function bindUi() {
     if (result.ok) appSettings.hotkey = shortcut;
   });
   document.getElementById('autoPresetSetting').addEventListener('change', (event) => saveAutomationSettings({ autoPresetEnabled: event.target.checked }));
+  document.getElementById('startMobileRemote').addEventListener('click', async () => {
+    const feedback = document.getElementById('mobileRemoteFeedback');
+    feedback.textContent = 'Đang mở kết nối trong mạng Wi‑Fi…';
+    const result = await window.audioApp.startMobileRemote();
+    renderMobileRemote(result, result.qrDataUrl);
+    feedback.textContent = result.running
+      ? 'Đã bật. Quét mã QR bằng camera điện thoại; nếu Windows hỏi, cho phép trên mạng riêng.'
+      : (result.message || 'Không bật được kết nối. Hãy kiểm tra Wi‑Fi trên máy tính.');
+  });
+  document.getElementById('stopMobileRemote').addEventListener('click', async () => {
+    const result = await window.audioApp.stopMobileRemote();
+    renderMobileRemote(result);
+    document.getElementById('mobileRemoteFeedback').textContent = 'Đã tắt kết nối điện thoại.';
+  });
+  document.getElementById('copyMobileRemoteUrl').addEventListener('click', async () => {
+    const url = document.getElementById('mobileRemoteUrl').textContent;
+    try {
+      await navigator.clipboard.writeText(url);
+      document.getElementById('mobileRemoteFeedback').textContent = 'Đã sao chép liên kết ghép nối. Mở liên kết trên điện thoại cùng Wi‑Fi.';
+    } catch {
+      document.getElementById('mobileRemoteFeedback').textContent = 'Không sao chép được. Hãy quét mã QR bằng camera điện thoại.';
+    }
+  });
   document.getElementById('engineModeSetting').addEventListener('change', async (event) => {
     const result = await window.audioApp.updateSettings({ engineMode: event.target.value });
     if (!result.ok) { document.getElementById('settingsFeedback').textContent = result.message || 'Không đổi được engine.'; return; }
@@ -1007,6 +1047,10 @@ async function initialize() {
     }
   });
   window.audioApp.onCompatibilityUpdate(renderCompatibility);
+  window.audioApp.onMobileRemoteStatus((status) => {
+    renderMobileRemote(status);
+    if (status.running) document.getElementById('mobileRemoteFeedback').textContent = `Đã kết nối ${status.pairedDevices || 0} điện thoại.`;
+  });
   const initial = await window.audioApp.getState();
   if (initial.profile) {
     profile = { ...DEFAULT_PROFILE(), ...initial.profile, effects: { ...DEFAULT_PROFILE().effects, ...initial.profile.effects } };
@@ -1019,6 +1063,7 @@ async function initialize() {
   if (initial.compatibilityReport) renderCompatibility(initial.compatibilityReport);
   if (initial.engineState) updateEngineDisplay(initial.engineState);
   initializeSettings(); syncEqControls(); syncEffectControls(); updateScore(); renderIntegration(initial.integration);
+  renderMobileRemote(initial.mobileRemote);
   renderPresets();
   document.getElementById('captureState').textContent = 'Chưa bắt đầu';
   const splash = document.getElementById('appSplash');

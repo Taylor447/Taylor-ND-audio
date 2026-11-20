@@ -22,10 +22,14 @@ contextBridge.exposeInMainWorld('audioApp', {
   chooseFile: (kind) => ipcRenderer.invoke('dialog:choose-file', kind),
   restartAdmin: () => ipcRenderer.invoke('app:restart-admin'),
   openExternal: (url) => ipcRenderer.invoke('app:open-external', url),
+  mobileRemoteStatus: () => ipcRenderer.invoke('mobile:remote-status'),
+  startMobileRemote: () => ipcRenderer.invoke('mobile:remote-start'),
+  stopMobileRemote: () => ipcRenderer.invoke('mobile:remote-stop'),
   windowAction: (action) => ipcRenderer.invoke('window:action', action),
   onStatus: (callback) => ipcRenderer.on('app:status', (_event, payload) => callback(payload)),
   onEngineUpdate: (callback) => ipcRenderer.on('engine:update', (_event, payload) => callback(payload)),
   onCompatibilityUpdate: (callback) => ipcRenderer.on('compat:update', (_event, report) => callback(report)),
+  onMobileRemoteStatus: (callback) => ipcRenderer.on('mobile:remote-status', (_event, status) => callback(status)),
   onMaximized: (callback) => ipcRenderer.on('window:maximized', (_event, value) => callback(value)),
   onWindowHidden: (callback) => ipcRenderer.on('app:window-hidden', callback)
 });

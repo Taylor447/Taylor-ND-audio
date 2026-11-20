@@ -251,6 +251,12 @@ input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer;
 .settings-layout { display: grid; grid-template-columns: 1.2fr .8fr; gap: 13px; align-items: start; }
 .settings-column { display: grid; gap: 13px; }
 .settings-card, .note-card { padding: 20px; border-radius: 19px; }
+.mobile-remote-pairing { display: grid; grid-template-columns: 136px minmax(0, 1fr); align-items: center; gap: 15px; margin: 12px 0; padding: 12px; border: 1px solid rgba(var(--accent-rgb), .2); border-radius: 14px; background: rgba(5,10,22,.24); }
+.mobile-remote-pairing img { display: block; width: 136px; height: 136px; padding: 7px; border-radius: 10px; background: #fff; object-fit: contain; }
+.mobile-remote-pairing > div { display: grid; gap: 8px; min-width: 0; }
+.mobile-remote-pairing b { color: var(--text); font-size: 10px; }
+.mobile-remote-pairing small { overflow-wrap: anywhere; color: var(--muted); font-size: 8px; line-height: 1.55; }
+.mobile-remote-security { margin: 8px 0 0; color: var(--warning); font-size: 8px; line-height: 1.6; }
 .settings-card-head { margin-bottom: 15px; }
 .settings-card h2, .engine-settings h2 { margin: 6px 0 0; font-size: 14px; letter-spacing: -.04em; }
 .theme-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }

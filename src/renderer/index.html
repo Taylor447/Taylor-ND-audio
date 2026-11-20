@@ -136,6 +136,14 @@
         <div class="settings-layout">
           <div class="settings-column">
             <article class="glass-card settings-card"><div class="settings-card-head"><div><span class="eyebrow">CHẾ ĐỘ XỬ LÝ</span><h2>Chọn engine âm thanh</h2></div></div><label class="field-label" for="engineModeSetting">Engine DSP</label><select class="device-select" id="engineModeSetting"><option value="apo">Equalizer APO</option><option value="taylor">Taylor Engine</option><option value="taylor-apo">Taylor APO · thử nghiệm</option></select><p class="settings-hint">Taylor Engine cần VB-CABLE. Taylor APO là prototype cần gói INF theo thiết bị; chưa cài trực tiếp vào endpoint.</p></article>
+            <article class="glass-card settings-card mobile-remote-card">
+              <div class="settings-card-head"><div><span class="eyebrow">ĐIỀU KHIỂN QUA ĐIỆN THOẠI</span><h2>Dùng điện thoại</h2></div><span class="engine-state-pill" id="mobileRemoteState">Đang tắt</span></div>
+              <p class="settings-hint">Điện thoại có thể đổi preset, EQ và hiệu ứng trên PC. Hai thiết bị cần cùng Wi‑Fi; âm thanh vẫn phát và được xử lý trên máy tính.</p>
+              <div class="mobile-remote-pairing hidden" id="mobileRemotePairing"><img id="mobileRemoteQr" alt="Mã QR ghép nối điện thoại"><div><b>Quét bằng camera điện thoại</b><small id="mobileRemoteUrl">Liên kết ghép nối sẽ hiện ở đây.</small><button class="button-outline small" id="copyMobileRemoteUrl">Sao chép liên kết</button></div></div>
+              <div class="device-actions"><button class="button-primary compact" id="startMobileRemote">Bật điều khiển điện thoại</button><button class="button-outline" id="stopMobileRemote" disabled>Tắt kết nối</button></div>
+              <p class="settings-feedback" id="mobileRemoteFeedback" role="status" aria-live="polite">Máy chủ điều khiển đang tắt.</p>
+              <p class="mobile-remote-security">Kết nối nội bộ hiện không mã hóa. Chỉ bật khi cần trên Wi‑Fi riêng đáng tin cậy, không dùng Wi‑Fi công cộng. Mã QR cấp quyền điều khiển; đừng gửi cho người khác. Tắt ở đây để ngắt điện thoại.</p>
+            </article>
             <article class="glass-card settings-card compatibility-card" id="compatibilityCard">
               <div class="settings-card-head"><div><span class="eyebrow">PHẠM VI TƯƠNG THÍCH</span><h2>Tương thích âm thanh</h2></div><span class="engine-state-pill" id="compatibilityState">Đang dò</span></div>
               <p class="settings-hint">Taylor ND Audio không thể bảo đảm mọi driver. Thiết bị chưa xác minh sẽ được giữ nguyên backend hiện tại; ứng dụng không tự ghi đè APO của hãng.</p>

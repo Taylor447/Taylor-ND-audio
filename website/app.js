@@ -17,6 +17,26 @@
   let bypassed = false;
   const demoFilters = [];
   const demoSources = [];
+  let installPrompt = null;
+
+  // Đăng ký bộ nhớ ngoại tuyến khi website được mở qua HTTPS hoặc localhost.
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    navigator.serviceWorker.register("sw.js", { scope: "./" }).catch((error) => {
+      console.warn("Không bật được chế độ ngoại tuyến:", error);
+    });
+  }
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    installPrompt = event;
+    document.getElementById("installAppButton").hidden = false;
+  });
+
+  window.addEventListener("appinstalled", () => {
+    installPrompt = null;
+    document.getElementById("installAppButton").hidden = true;
+    document.getElementById("installStatus").textContent = dictionaries[language]?.mobileInstalled || "Taylor ND Audio web app has been installed.";
+  });
 
   function textValue(element, value) {
     if (element.hasAttribute("data-i18n-html")) {
@@ -110,6 +130,16 @@
   });
   themeButton.addEventListener("click", () => setTheme(!body.classList.contains("light-mode")));
   document.getElementById("year").textContent = String(new Date().getFullYear());
+  document.getElementById("installAppButton").addEventListener("click", async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    document.getElementById("installStatus").textContent = choice.outcome === "accepted"
+      ? (dictionaries[language]?.mobileInstallAccepted || "Web app installed.")
+      : (dictionaries[language]?.mobileInstallDismissed || "You can install it later from your browser menu.");
+    installPrompt = null;
+    document.getElementById("installAppButton").hidden = true;
+  });
 
   function dimensions(canvas) {
     const measured = { width: canvas.width, height: canvas.height, ratio: 1 };

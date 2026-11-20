@@ -214,6 +214,13 @@ h1 em, h2 em { color: transparent; background: linear-gradient(100deg, var(--gol
 .requirements-card > div { display: grid; grid-template-columns: 30px 1fr; align-items: center; gap: 10px; color: var(--text-soft); font-size: 9px; }
 .requirements-card > div b { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 8px; color: var(--gold-light); background: rgba(245,184,46,.1); font-family: "Montserrat", sans-serif; font-size: 8px; }
 .requirements-card small { padding-top: 10px; border-top: 1px solid var(--surface-border); color: var(--muted); font-size: 8px; }
+.mobile-use-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.mobile-use-card { min-width: 0; padding: 25px; border-radius: 24px; }
+.mobile-use-card h3 { margin: 17px 0 8px; font-family: "Montserrat", sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -.04em; }
+.mobile-use-card p { color: var(--text-soft); font-size: 11px; line-height: 1.8; }
+.mobile-install-button { margin: 8px 0 2px; border: 0; cursor: pointer; }
+.mobile-important { padding: 12px 14px; border: 1px solid rgba(245,184,46,.25); border-radius: 13px; color: var(--gold-light) !important; background: rgba(245,184,46,.07); }
+.light-mode .mobile-important { color: #5e4104 !important; }
 .faq-section { padding-top: 22px; }
 .faq-list { max-width: 900px; margin-inline: auto; border-top: 1px solid var(--surface-border); }
 .faq-list details { border-bottom: 1px solid var(--surface-border); }
@@ -280,6 +287,7 @@ h1 em, h2 em { color: transparent; background: linear-gradient(100deg, var(--gol
   .demo-section { padding: 76px 0; }.demo-layout { grid-template-columns: 1fr; gap: 26px; }.demo-panel { padding: 17px; border-radius: 22px; }.demo-spectrum canvas { height: 125px; }
   .mode-grid { grid-template-columns: 1fr; }.mode-card > p, .mode-card ul { min-height: auto; }.mode-card { padding: 19px; }.mode-card h3 { font-size: 16px; }
   .download-section { padding-block: 0 80px; }.download-card { grid-template-columns: 1fr; gap: 28px; padding: 26px 21px; border-radius: 24px; }.download-copy h2 { font-size: 46px; }
+  .mobile-use-grid { grid-template-columns: 1fr; gap: 11px; }.mobile-use-card { padding: 21px; border-radius: 21px; }.mobile-use-card p { font-size: 12px; }
   .faq-section { padding-top: 0; }.faq-list summary { font-size: 11px; }
   .footer-main { align-items: start; flex-direction: column; gap: 17px; }.footer-links { justify-content: start; gap: 10px 15px; }.footer-bottom { align-items: start; flex-direction: column; gap: 5px; }
 }

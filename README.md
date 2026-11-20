@@ -78,17 +78,17 @@ Build probe và engine bằng `cargo build --release --manifest-path engine/Carg
 
 ## Chạy ứng dụng từ source
 
-Cài Node.js LTS, Rust stable 1.85 trở lên và công cụ build MSVC của Visual Studio. Mở PowerShell tại thư mục dự án rồi chạy:
+Cài Node.js LTS. Mở PowerShell tại thư mục dự án rồi chạy:
 
 ```powershell
 npm install
 npm start
 ```
 
-`npm start` chạy bước `prestart` để build sidecar Rust ở chế độ release trước khi mở Electron. Để build riêng engine:
+`npm start` mở giao diện desktop mà không cần cài Rust; chế độ mặc định Equalizer APO dùng được ngay nếu Equalizer APO đã có trên máy. Để chọn Taylor Engine, cài Rust stable 1.85 trở lên cùng công cụ build MSVC của Visual Studio, rồi build và chạy:
 
 ```powershell
-cargo build --release --manifest-path engine/Cargo.toml
+npm run start:engine
 ```
 
 Để tạo installer NSIS x64:
@@ -98,6 +98,21 @@ npm run dist
 ```
 
 Lệnh này build `engine/target/release/tnd-engine.exe`, rồi electron-builder chép binary vào `resources/engine/tnd-engine.exe` bằng cấu hình `extraResources`. Installer được tạo tại `dist/Taylor-ND-Audio-Setup-1.0.0.exe` và dùng `assets/taylor-nd-audio.ico` cho app, installer, shortcut và uninstaller. Installer không kèm VB-CABLE.
+
+## Dùng Taylor ND Audio bằng điện thoại
+
+Website tự co bố cục theo màn hình nhỏ. Mở [website Taylor ND Audio](https://taylor447.github.io/taylor-nd-audio/) trên điện thoại; có thể thêm vào Màn hình chính để mở như ứng dụng web. Trên iPhone dùng Safari → Chia sẻ → **Thêm vào Màn hình chính**. Trên Android dùng Chrome → menu → **Cài đặt ứng dụng** hoặc **Thêm vào màn hình chính**. Sau khi mở website một lần, các tệp giao diện và demo có thể được lưu để mở ngoại tuyến.
+
+Để dùng điện thoại làm điều khiển cho âm thanh đang phát trên PC:
+
+1. Mở Taylor ND Audio trên máy Windows và để ứng dụng chạy.
+2. Kết nối PC và điện thoại vào cùng mạng Wi‑Fi riêng.
+3. Trong app Windows, vào **Cài đặt → Dùng điện thoại → Bật điều khiển điện thoại**.
+4. Nếu Windows hỏi về tường lửa, chỉ cho phép app trên mạng riêng. Dùng camera điện thoại quét mã QR hiện trên PC.
+5. Chọn preset hoặc chỉnh EQ trên điện thoại. Âm thanh vẫn phát và được xử lý trên PC.
+6. Khi xong, bấm **Tắt kết nối** trên PC.
+
+Kết nối điều khiển nội bộ hiện không mã hóa. Chỉ bật trên Wi‑Fi riêng bạn tin cậy, không dùng Wi‑Fi công cộng; QR cấp quyền chỉnh âm thanh nên không chia sẻ. Nếu app Windows đóng hoặc khởi động lại, hãy quét mã mới. Mục **Thử demo** trên website chỉ tạo âm mẫu trong tab trình duyệt; website không điều khiển mọi âm thanh trên điện thoại.
 
 ## Cài và chạy Taylor Engine
 

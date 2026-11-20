@@ -7,8 +7,9 @@
   "author": "Taylor ND Audio",
   "license": "MIT",
   "scripts": {
-    "prestart": "npm run build:brand && npm run build:engine",
+    "prestart": "npm run build:brand",
     "start": "electron .",
+    "start:engine": "npm run build:engine && electron .",
     "build:brand": "node scripts/build-brand.mjs",
     "qa:website": "node scripts/qa-website.mjs",
     "build:engine": "cargo build --release --manifest-path engine/Cargo.toml --bins",
@@ -31,6 +32,7 @@
   "dependencies": {
     "@fontsource-variable/montserrat": "^5.3.0",
     "@fontsource/be-vietnam-pro": "^5.3.0",
+    "qrcode": "^1.5.4",
     "ws": "8.18.3"
   },
   "build": {

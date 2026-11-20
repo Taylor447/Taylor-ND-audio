@@ -5,6 +5,8 @@ const path = require('node:path');
 const { execFile } = require('node:child_process');
 const dsp = require('./dsp/engine');
 const { CompatibilityManager } = require('./compat/manager');
+const { MobileRemoteServer } = require('./mobile/remote-control-server');
+const QRCode = require('qrcode');
 
 const APP_ID = 'com.taylorn.audio';
 const DEFAULT_HOTKEY = 'Ctrl+Alt+F12';
@@ -24,6 +26,7 @@ let writeQueue = Promise.resolve();
 let foregroundCheckRunning = false;
 let compatibilityReport = { generatedAt: null, devices: [], softwareConflicts: [], notice: 'Chưa quét thiết bị.' };
 let compatibilityManager = null;
+let mobileRemoteServer = null;
 
 if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
 app.setName('Taylor ND Audio');
@@ -97,7 +100,63 @@ function publishStatus() {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('app:status', { integration, profile: currentProfile, settings, engineMode: settings.engineMode, engineState: dsp.getStatus(), automationPresetId: activeAutoPresetId });
   }
+  mobileRemoteServer?.publishState();
   rebuildTrayMenu();
+}
+
+async function applyRemoteProfile(remoteProfile) {
+  if (!remoteProfile || !Array.isArray(remoteProfile.eq) || remoteProfile.eq.length !== 10 || !remoteProfile.effects) {
+    return { ok: false, message: 'Hồ sơ từ điện thoại không hợp lệ.' };
+  }
+  // Điện thoại chỉ thay EQ và các mức hiệu ứng; không nhận đường dẫn file hoặc plugin.
+  const allowedEffects = {};
+  for (const key of ['bass', 'treble', 'dialogue', 'width', 'balance']) {
+    if (Object.hasOwn(remoteProfile.effects, key)) allowedEffects[key] = remoteProfile.effects[key];
+  }
+  currentProfile = normalizeProfile({
+    ...currentProfile,
+    eq: remoteProfile.eq,
+    effects: { ...currentProfile.effects, ...allowedEffects }
+  });
+  activeAutoPresetId = null;
+  writeJson(dataFile('profile.json'), currentProfile);
+  const result = await queueProfileWrite(currentProfile);
+  publishStatus();
+  return result;
+}
+
+async function applyRemotePreset(presetId) {
+  const preset = knownPresets.find((item) => item.id === presetId);
+  if (!preset) return { ok: false, message: 'Không tìm thấy preset này trên máy tính.' };
+  return applyRemoteProfile(safeMobileProfile(preset.profile));
+}
+
+function safeMobileProfile(source) {
+  const effects = source?.effects || {};
+  return {
+    eq: Array.isArray(source?.eq) ? source.eq.slice(0, 10) : [],
+    effects: Object.fromEntries(['bass', 'treble', 'dialogue', 'width', 'balance'].map((key) => [key, effects[key]]))
+  };
+}
+
+async function applyRemoteBypass(bypass) {
+  currentProfile = { ...currentProfile, bypass: Boolean(bypass) };
+  writeJson(dataFile('profile.json'), currentProfile);
+  const result = await queueProfileWrite(currentProfile);
+  publishStatus();
+  return result;
+}
+
+function createMobileRemoteServer() {
+  mobileRemoteServer = new MobileRemoteServer({
+    getState: () => ({ profile: currentProfile, presets: knownPresets, integration, engine: dsp.getStatus() }),
+    applyProfile: applyRemoteProfile,
+    applyPreset: applyRemotePreset,
+    setBypass: applyRemoteBypass,
+    onStatus: (status) => {
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('mobile:remote-status', status);
+    }
+  });
 }
 
 function publishCompatibility(report) {
@@ -280,8 +339,24 @@ function restartAsAdministrator() {
 function installIpcHandlers() {
   ipcMain.handle('app:get-state', async () => {
     await initPromise;
-    return { integration, profile: currentProfile, settings, engineMode: settings.engineMode, engineState: dsp.getStatus(), devices: await dsp.listDevices(), compatibilityReport, automationPresetId: activeAutoPresetId };
+    return { integration, profile: currentProfile, settings, engineMode: settings.engineMode, engineState: dsp.getStatus(), devices: await dsp.listDevices(), compatibilityReport, automationPresetId: activeAutoPresetId, mobileRemote: mobileRemoteServer?.getStatus() || { running: false } };
   });
+
+  ipcMain.handle('mobile:remote-status', () => mobileRemoteServer?.getStatus() || { running: false });
+  ipcMain.handle('mobile:remote-start', async () => {
+    try {
+      if (!mobileRemoteServer) createMobileRemoteServer();
+      const status = await mobileRemoteServer.start();
+      const qrDataUrl = await QRCode.toDataURL(mobileRemoteServer.getPairingUrl(), {
+        errorCorrectionLevel: 'M', margin: 2, width: 280,
+        color: { dark: '#0B1020', light: '#FFFFFF' }
+      });
+      return { ...status, qrDataUrl };
+    } catch (error) {
+      return { running: false, message: error.message || 'Không bật được điều khiển điện thoại.' };
+    }
+  });
+  ipcMain.handle('mobile:remote-stop', async () => mobileRemoteServer?.stop() || { running: false });
 
   ipcMain.handle('compat:scan', async () => compatibilityManager.scan());
   ipcMain.handle('compat:export', async () => compatibilityManager.exportAnonymous(compatibilityReport));
@@ -432,6 +507,7 @@ function installIpcHandlers() {
 if (gotLock) app.on('second-instance', showWindow);
 if (gotLock) app.whenReady().then(() => {
   loadSavedData();
+  createMobileRemoteServer();
   createWindow();
   createTray();
   settings.launchAtLogin = app.getLoginItemSettings().openAtLogin || settings.launchAtLogin;
@@ -463,6 +539,7 @@ if (gotLock) app.whenReady().then(() => {
 
 app.on('will-quit', () => {
   compatibilityManager?.stopWatchdog();
+  void mobileRemoteServer?.stop();
   globalShortcut.unregisterAll();
   void dsp.disconnect();
 });
